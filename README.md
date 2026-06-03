@@ -392,11 +392,62 @@ cd gateway && go build -o nexus-gateway .
 
 ### Prerequisites by Platform
 
-| Platform | Requirements |
-|----------|-------------|
-| **Linux** | `sudo apt install pkg-config libssl-dev build-essential` |
-| **macOS** | `xcode-select --install` |
-| **Windows** | Rust via rustup.rs, Go via go.dev, MinGW-w64 for GNU linker |
+#### Windows (PowerShell)
+```powershell
+# Install Rust
+# Option A: Download from https://rustup.rs
+# Option B:
+winget install Rustlang.Rustup
+
+# Install Git
+winget install Git.Git
+
+# Build
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+
+# If you get linker errors, switch to GNU toolchain:
+rustup default stable-x86_64-pc-windows-gnu
+```
+
+#### macOS
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Install Xcode CLI tools (includes Git)
+xcode-select --install
+
+# Build
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+# Install dependencies
+sudo apt update
+sudo apt install curl pkg-config libssl-dev build-essential git
+
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Build
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+```
+
+#### Linux (Fedora/RHEL)
+```bash
+sudo dnf install pkg-config openssl-devel gcc git
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+```
 
 ## Roadmap
 
