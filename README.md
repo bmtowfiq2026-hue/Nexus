@@ -32,6 +32,27 @@ Nexus is an **end-to-end autonomous AI agent platform** built with Rust and Go. 
 
 ## Quick Start
 
+### One-Liner Install
+
+| Platform | Command |
+|----------|---------|
+| **macOS / Linux** | `curl -fsSL https://raw.githubusercontent.com/nexus/nexus/main/scripts/install.sh \| sh` |
+| **Windows PowerShell** | `iwr -useb https://raw.githubusercontent.com/nexus/nexus/main/scripts/install.ps1 \| iex` |
+
+After install, start chatting immediately:
+
+```bash
+nexus chat
+```
+
+```
+✦ Nexus Agent ready (demo mode). Type '/quit' to exit.
+You: hello
+Nexus: Hello! I'm Nexus, your autonomous AI agent.
+```
+
+**Zero setup. No API keys. No accounts.** Works on Windows, macOS, and Linux.
+
 ### Option 1: Try it now — zero setup, no API keys
 
 **Demo mode** works immediately with no accounts or keys. The agent simulates realistic responses and demonstrates the full CLI, memory, and skill system.
@@ -40,9 +61,7 @@ Nexus is an **end-to-end autonomous AI agent platform** built with Rust and Go. 
 
 ```powershell
 # 1. Install Rust (one command, one-time)
-#    Open https://rustup.rs in your browser, download and run rustup-init.exe
-#    or run this in PowerShell:
-#    winget install Rustlang.Rustup
+winget install Rustlang.Rustup
 
 # 2. Build Nexus
 git clone https://github.com/nexus/nexus.git
@@ -88,17 +107,6 @@ cargo build --release
 
 # 4. Start chatting!
 ./target/release/nexus chat
-```
-
-```
-✦ Nexus Agent ready (demo mode). Type '/quit' to exit.
-
-  ℹ Run with a real provider:
-    • nexus chat --provider openai  (set OPENAI_API_KEY)
-    • nexus chat --provider ollama   (run Ollama locally)
-
-You: hello
-Nexus: Hello! I'm Nexus, your autonomous AI agent.
 ```
 
 ### Option 2: Docker (no Rust needed)
