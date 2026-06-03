@@ -5,6 +5,7 @@ use nexus_core::agent::AgentLoop;
 use nexus_core::memory::graph::GraphMemory;
 use nexus_core::memory::vector::VectorStore;
 use nexus_core::memory::MemoryStore;
+use nexus_core::providers::demo::DemoProvider;
 use nexus_core::providers::openai::OpenAIProvider;
 use nexus_core::providers::ProviderConfig;
 use nexus_core::skills::SkillEngine;
@@ -30,10 +31,10 @@ enum Commands {
         #[arg(short, long)]
         path: Option<String>,
     },
-    /// Start an interactive chat session
+    /// Start an interactive chat session (default: demo)
     Chat {
-        /// Provider to use (openai, anthropic, ollama)
-        #[arg(short, long, default_value = "openai")]
+        /// Provider to use (demo, openai, anthropic, ollama)
+        #[arg(short, long, default_value = "demo")]
         provider: String,
         /// Model to use
         #[arg(short, long)]
@@ -44,8 +45,8 @@ enum Commands {
         /// The instruction for the agent
         #[arg(long)]
         prompt: String,
-        /// Provider to use
-        #[arg(short, long, default_value = "openai")]
+        /// Provider to use (demo, openai, anthropic, ollama)
+        #[arg(short, long, default_value = "demo")]
         provider: String,
     },
     /// Configure Nexus settings
@@ -125,6 +126,7 @@ async fn cmd_init(path: Option<&str>) -> anyhow::Result<()> {
     println!("  Memory: {}", memory_dir.display().to_string().cyan());
     println!();
     println!("{} Run 'nexus chat' to start interacting with your agent.", "→".blue());
+    println!("  {}", "(No API key needed — uses demo mode by default)".dimmed());
 
     Ok(())
 }
@@ -156,11 +158,23 @@ async fn cmd_chat(provider_name: &str, model: Option<&str>) -> anyhow::Result<()
         "local".to_string(),
     );
 
-    println!(
-        "{} Nexus Agent ready. Type '{}' to exit.\n",
-        "✦".cyan().bold(),
-        "/quit".yellow()
-    );
+    if provider_name == "demo" {
+        println!(
+            "{} Nexus Agent ready (demo mode). Type '{}' to exit.\n",
+            "✦".cyan().bold(),
+            "/quit".yellow()
+        );
+        println!("  {} Run with a real provider:", "ℹ".blue().dimmed());
+        println!("    {} nexus chat --provider openai  (set OPENAI_API_KEY)", "  •".dimmed());
+        println!("    {} nexus chat --provider ollama   (run Ollama locally)", "  •".dimmed());
+        println!();
+    } else {
+        println!(
+            "{} Nexus Agent ready. Type '{}' to exit.\n",
+            "✦".cyan().bold(),
+            "/quit".yellow()
+        );
+    }
 
     loop {
         let mut input = String::new();
@@ -306,7 +320,10 @@ fn create_provider(
                 ..Default::default()
             }))
         }
-        _ => anyhow::bail!("Unknown provider '{}'. Available: openai, anthropic, ollama", name),
+        "demo" => {
+            Arc::new(DemoProvider::new())
+        }
+        _ => anyhow::bail!("Unknown provider '{}'. Available: demo, openai, anthropic, ollama", name),
     };
     Ok(provider)
 }

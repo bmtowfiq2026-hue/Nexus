@@ -73,8 +73,8 @@ impl Default for NexusConfig {
     fn default() -> Self {
         Self {
             workspace: String::from("~/.nexus"),
-            default_provider: String::from("openai"),
-            default_model: String::from("gpt-4o"),
+            default_provider: String::from("demo"),
+            default_model: String::from("demo"),
             memory: MemoryConfig {
                 store_path: String::from("~/.nexus/memory"),
                 vector_dimensions: 1536,

@@ -1,6 +1,7 @@
 pub mod openai;
 pub mod anthropic;
 pub mod ollama;
+pub mod demo;
 
 use crate::Result;
 use async_trait::async_trait;
