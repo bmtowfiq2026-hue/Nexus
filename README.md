@@ -34,16 +34,15 @@ Nexus is an **end-to-end autonomous AI agent platform** built with Rust and Go. 
 
 ### One-Liner Install
 
+Clone, build, and start chatting with a single command:
+
 | Platform | Command |
 |----------|---------|
-| **macOS / Linux** | `curl -fsSL https://raw.githubusercontent.com/nexus/nexus/main/scripts/install.sh \| sh` |
-| **Windows PowerShell** | `iwr -useb https://raw.githubusercontent.com/nexus/nexus/main/scripts/install.ps1 \| iex` |
+| **macOS / Linux** | `git clone https://github.com/nexus/nexus.git && cd nexus && cargo build --release && ./target/release/nexus init && ./target/release/nexus chat` |
+| **Windows PowerShell** | `git clone https://github.com/nexus/nexus.git; cd nexus; cargo build --release; .\target\release\nexus init; .\target\release\nexus chat` |
+| **Windows cmd.exe** | `git clone https://github.com/nexus/nexus.git && cd nexus && cargo build --release && .\target\release\nexus init && .\target\release\nexus chat` |
 
-After install, start chatting immediately:
-
-```bash
-nexus chat
-```
+After the command finishes, you'll see:
 
 ```
 ✦ Nexus Agent ready (demo mode). Type '/quit' to exit.
@@ -51,7 +50,11 @@ You: hello
 Nexus: Hello! I'm Nexus, your autonomous AI agent.
 ```
 
-**Zero setup. No API keys. No accounts.** Works on Windows, macOS, and Linux.
+**Zero setup. No API keys. No accounts. Works on Windows, macOS, and Linux.**
+
+> **Prerequisite:** [Rust](https://rustup.rs) must be installed first. One-time install:
+> - **macOS/Linux:** `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+> - **Windows:** `winget install Rustlang.Rustup` or download from [rustup.rs](https://rustup.rs)
 
 ### Option 1: Try it now — zero setup, no API keys
 
