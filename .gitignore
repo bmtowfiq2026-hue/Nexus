@@ -1,0 +1,35 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Go build artifacts
+gateway/nexus-gateway
+gateway/nexus-gateway.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+nexus.log
+
+# Local runtime data
+data/
+memory/
+temp/
+
+# Python virtual envs (build scripts)
+venv/
+.venv/

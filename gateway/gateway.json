@@ -1,0 +1,21 @@
+{
+  "port": 8080,
+  "webchat": {
+    "enabled": true,
+    "path": "/ws"
+  },
+  "discord": {
+    "enabled": false,
+    "bot_token": ""
+  },
+  "telegram": {
+    "enabled": false,
+    "bot_token": ""
+  },
+  "slack": {
+    "enabled": false,
+    "bot_token": "",
+    "app_token": "",
+    "signing_secret": ""
+  }
+}
