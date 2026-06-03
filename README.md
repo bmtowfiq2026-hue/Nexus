@@ -32,20 +32,61 @@ Nexus is an **end-to-end autonomous AI agent platform** built with Rust and Go. 
 
 ## Quick Start
 
-### Option 1: Try it now (zero setup)
+### Option 1: Try it now — zero setup, no API keys
 
-```bash
-# Prerequisites: Rust 1.86+ (https://rustup.rs)
+**Demo mode** works immediately with no accounts or keys. The agent simulates realistic responses and demonstrates the full CLI, memory, and skill system.
+
+#### Windows PowerShell
+
+```powershell
+# 1. Install Rust (one command, one-time)
+#    Open https://rustup.rs in your browser, download and run rustup-init.exe
+#    or run this in PowerShell:
+#    winget install Rustlang.Rustup
+
+# 2. Build Nexus
 git clone https://github.com/nexus/nexus.git
 cd nexus
-
-# Build (takes ~1-2 min first time)
 cargo build --release
 
-# Initialize workspace
+# 3. Initialize workspace
+.\target\release\nexus init
+
+# 4. Start chatting!
+.\target\release\nexus chat
+```
+
+#### Windows Terminal (cmd.exe)
+
+```cmd
+REM 1. Install Rust from https://rustup.rs
+REM 2. Build Nexus
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+
+REM 3. Initialize workspace
+.\target\release\nexus init
+
+REM 4. Start chatting!
+.\target\release\nexus chat
+```
+
+#### macOS / Linux
+
+```bash
+# 1. Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 2. Build Nexus
+git clone https://github.com/nexus/nexus.git
+cd nexus
+cargo build --release
+
+# 3. Initialize workspace
 ./target/release/nexus init
 
-# Start chatting immediately — no API keys!
+# 4. Start chatting!
 ./target/release/nexus chat
 ```
 
@@ -60,45 +101,63 @@ You: hello
 Nexus: Hello! I'm Nexus, your autonomous AI agent.
 ```
 
-**Demo mode** works immediately with no accounts or keys. The agent simulates realistic responses and demonstrates the full CLI, memory, and skill system.
-
 ### Option 2: Docker (no Rust needed)
 
+All platforms:
+
 ```bash
+git clone https://github.com/nexus/nexus.git
+cd nexus
 docker compose up nexus
 ```
 
-### Option 3: Build from source
+### Option 3: Install via Cargo (binary only)
 
 ```bash
-# Prerequisites
-# - Rust 1.86+: https://rustup.rs
-# - Go 1.22+:  https://go.dev/dl
-
-git clone https://github.com/nexus/nexus.git
-cd nexus
-cargo build --release
-
-# (Optional) Build the gateway
-cd gateway && go build -o nexus-gateway && cd ..
+cargo install nexus-cli
+nexus init
+nexus chat
 ```
+
+> **Note:** If `nexus` is not found after install, add `~/.cargo/bin` to your PATH:
+> - **Windows PowerShell:** `$env:Path += ";$env:USERPROFILE\.cargo\bin"`
+> - **macOS/Linux:** `export PATH="$PATH:$HOME/.cargo/bin"` (add to `~/.bashrc` or `~/.zshrc`)
 
 ### Connect a Real Provider
 
+#### Windows PowerShell
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+.\target\release\nexus chat --provider openai
+```
+
+#### Windows cmd.exe
+```cmd
+set OPENAI_API_KEY=sk-...
+.\target\release\nexus chat --provider openai
+```
+
+#### macOS / Linux
 ```bash
-# OpenAI (set API key)
 export OPENAI_API_KEY="sk-..."
+./target/release/nexus chat --provider openai
+```
+
+#### Or set it permanently:
+```bash
+nexus config set api_keys.openai "sk-..."
 nexus chat --provider openai
+```
 
-# Anthropic Claude
-export ANTHROPIC_API_KEY="sk-ant-..."
-nexus chat --provider anthropic
-
-# Ollama (free, local — just install Ollama)
+#### Free alternative — Ollama (local, no API key):
+```bash
+# Install Ollama from https://ollama.ai
 ollama pull llama3
 nexus chat --provider ollama
+```
 
-# Or use the onboarding wizard
+#### Use the guided setup wizard:
+```bash
 nexus onboard
 ```
 
