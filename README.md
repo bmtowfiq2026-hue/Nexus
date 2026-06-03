@@ -5,13 +5,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bmtowfiq2026-hue/Nexus/actions"><img src="https://img.shields.io/github/actions/workflow/status/nexus/nexus/ci.yml?branch=main&style=flat-square" alt="CI"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/actions"><img src="https://img.shields.io/github/actions/workflow/status/bmtowfiq2026-hue/Nexus/ci.yml?branch=main&style=flat-square" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/rust-1.86+-orange.svg?style=flat-square" alt="Rust"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.22+-00ADD8.svg?style=flat-square" alt="Go"></a>
-  <a href="https://github.com/bmtowfiq2026-hue/Nexus/releases"><img src="https://img.shields.io/github/v/release/nexus/nexus?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/bmtowfiq2026-hue/Nexus/stargazers"><img src="https://img.shields.io/github/stars/nexus/nexus?style=flat-square" alt="Stars"></a>
-  <a href="https://discord.gg/nexus"><img src="https://img.shields.io/badge/chat-discord-5865F2.svg?style=flat-square" alt="Discord"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/releases"><img src="https://img.shields.io/github/v/release/bmtowfiq2026-hue/Nexus?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/stargazers"><img src="https://img.shields.io/github/stars/bmtowfiq2026-hue/Nexus?style=flat-square" alt="Stars"></a>
+  <a href="#"><img src="https://img.shields.io/badge/chat-discord-5865F2.svg?style=flat-square" alt="Discord"></a>
 </p>
 
 <p align="center">
@@ -67,7 +67,7 @@ winget install Rustlang.Rustup
 
 # 2. Build Nexus
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 
 # 3. Initialize workspace
@@ -83,7 +83,7 @@ cargo build --release
 REM 1. Install Rust from https://rustup.rs
 REM 2. Build Nexus
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 
 REM 3. Initialize workspace
@@ -101,7 +101,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # 2. Build Nexus
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 
 # 3. Initialize workspace
@@ -117,7 +117,7 @@ All platforms:
 
 ```bash
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 docker compose up nexus
 ```
 
@@ -414,7 +414,7 @@ winget install Git.Git
 
 # Build
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 
 # If you get linker errors, switch to GNU toolchain:
@@ -431,7 +431,7 @@ xcode-select --install
 
 # Build
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 ```
 
@@ -446,7 +446,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Build
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 ```
 
@@ -455,7 +455,7 @@ cargo build --release
 sudo dnf install pkg-config openssl-devel gcc git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 git clone https://github.com/bmtowfiq2026-hue/Nexus.git
-cd nexus
+cd Nexus
 cargo build --release
 ```
 
