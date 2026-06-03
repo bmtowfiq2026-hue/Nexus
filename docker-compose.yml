@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  nexus:
+    build: .
+    image: nexus:latest
+    container_name: nexus
+    ports:
+      - "8080:8080"
+    volumes:
+      - nexus_data:/root/.nexus
+      - ./gateway/gateway.json:/etc/nexus/gateway.json:ro
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    command: chat --provider demo
+    stdin_open: true
+    tty: true
+
+  nexus-gateway:
+    image: nexus:latest
+    container_name: nexus-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/gateway.json:/etc/nexus/gateway.json:ro
+    entrypoint: ["nexus-gateway"]
+    command: ["--config", "/etc/nexus/gateway.json"]
+
+volumes:
+  nexus_data:

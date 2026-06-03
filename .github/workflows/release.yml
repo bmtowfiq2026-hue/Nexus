@@ -7,16 +7,28 @@ on:
 
 name: Release
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build release binaries
+    name: Build ${{ matrix.target }}
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-msvc
-    runs-on: ubuntu-latest
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            ext: ""
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            ext: ""
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            ext: ""
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            ext: ".exe"
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -24,21 +36,22 @@ jobs:
           target: ${{ matrix.target }}
       - run: cargo build --release --target ${{ matrix.target }}
       - name: Package
+        shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf nexus-${{ matrix.target }}.tar.gz nexus
+          tar czf nexus-${{ matrix.target }}.tar.gz nexus${{ matrix.ext }}
       - uses: actions/upload-artifact@v4
         with:
           name: nexus-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/nexus-${{ matrix.target }}.tar.gz
 
   release:
-    name: Create Release
+    name: Create GitHub Release
     needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: nexus-*/*.tar.gz
           generate_release_notes: true

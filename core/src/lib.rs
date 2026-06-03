@@ -11,6 +11,7 @@ pub mod tools;
 pub mod trajectory;
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 pub type Result<T> = std::result::Result<T, NexusError>;
 
@@ -51,6 +52,7 @@ pub struct NexusConfig {
     pub workspace: String,
     pub default_provider: String,
     pub default_model: String,
+    pub api_keys: HashMap<String, String>,
     pub memory: MemoryConfig,
     pub sandbox: SandboxConfig,
 }
@@ -71,10 +73,14 @@ pub struct SandboxConfig {
 
 impl Default for NexusConfig {
     fn default() -> Self {
+        let mut api_keys = HashMap::new();
+        api_keys.insert("openai".to_string(), String::new());
+        api_keys.insert("anthropic".to_string(), String::new());
         Self {
             workspace: String::from("~/.nexus"),
             default_provider: String::from("demo"),
             default_model: String::from("demo"),
+            api_keys,
             memory: MemoryConfig {
                 store_path: String::from("~/.nexus/memory"),
                 vector_dimensions: 1536,
@@ -86,5 +92,39 @@ impl Default for NexusConfig {
                 network_access: false,
             },
         }
+    }
+}
+
+impl NexusConfig {
+    pub fn load() -> Self {
+        let config_path = shellexpand::tilde("~/.nexus/nexus.json").to_string();
+        if std::path::Path::new(&config_path).exists() {
+            if let Ok(data) = std::fs::read_to_string(&config_path) {
+                if let Ok(cfg) = serde_json::from_str::<NexusConfig>(&data) {
+                    return cfg;
+                }
+            }
+        }
+        Self::default()
+    }
+
+    pub fn save(&self) -> Result<()> {
+        let config_path = shellexpand::tilde("~/.nexus/nexus.json").to_string();
+        if let Some(parent) = std::path::Path::new(&config_path).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let data = serde_json::to_string_pretty(self)?;
+        std::fs::write(&config_path, data)?;
+        Ok(())
+    }
+
+    pub fn get_api_key(&self, provider: &str) -> Option<String> {
+        self.api_keys.get(provider).and_then(|k| {
+            if k.is_empty() {
+                std::env::var(format!("{}_API_KEY", provider.to_uppercase())).ok()
+            } else {
+                Some(k.clone())
+            }
+        })
     }
 }
