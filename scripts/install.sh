@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Nexus Install Script (macOS/Linux/WSL2)
-# Usage: curl -fsSL https://raw.githubusercontent.com/nexus/nexus/main/scripts/install.sh | sh
+# Usage: git clone https://github.com/bmtowfiq2026-hue/Nexus.git ~/.nexus-repo && bash ~/.nexus-repo/scripts/install.sh
 
 set -e
 
@@ -10,7 +10,7 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "${CYAN}${BOLD}🦞 Installing Nexus...${NC}"
+echo "${CYAN}${BOLD}== Installing Nexus ==${NC}"
 echo ""
 
 # Detect platform
@@ -34,9 +34,9 @@ if ! command -v cargo >/dev/null 2>&1; then
   echo "${YELLOW}Installing Rust...${NC}"
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   . "$HOME/.cargo/env"
-  echo "${GREEN}✓ Rust installed${NC}"
-else
-  echo "${GREEN}✓ Rust found: $(cargo --version)${NC}"
+  echo "${GREEN}Rust installed${NC}"
+} else {
+  echo "${GREEN}Rust found: $(cargo --version)${NC}"
 fi
 
 # Clone or update repo
@@ -70,13 +70,13 @@ case "$SHELL" in
 esac
 
 if echo "$PATH" | grep -q "$HOME/.nexus-bin"; then
-  echo "${GREEN}✓ Already in PATH${NC}"
+  echo "${GREEN}Already in PATH${NC}"
 else
   if [ -n "$SHELL_PROFILE" ]; then
     echo 'export PATH="$HOME/.nexus-bin:$PATH"' >> "$SHELL_PROFILE"
-    echo "${GREEN}✓ Added to PATH in $SHELL_PROFILE${NC}"
+    echo "${GREEN}Added to PATH in $SHELL_PROFILE${NC}"
   else
-    echo "${YELLOW}⚠ Add to PATH manually: export PATH=\"\$HOME/.nexus-bin:\$PATH\"${NC}"
+    echo "${YELLOW}Add to PATH manually: export PATH=\"\$HOME/.nexus-bin:\$PATH\"${NC}"
   fi
   export PATH="$HOME/.nexus-bin:$PATH"
 fi
@@ -86,7 +86,7 @@ echo ""
 nexus init 2>&1
 echo ""
 
-echo "${CYAN}${BOLD}✓ Nexus installed!${NC}"
+echo "${CYAN}${BOLD}Nexus installed!${NC}"
 echo ""
 echo "  ${GREEN}nexus chat${NC}        Start chatting (demo mode)"
 echo "  ${GREEN}nexus doctor${NC}      Check system health"
