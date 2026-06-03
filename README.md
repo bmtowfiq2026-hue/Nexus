@@ -34,14 +34,14 @@ Nexus is an **end-to-end autonomous AI agent platform** built with Rust and Go. 
 
 ### One-Liner Install
 
-Clone, build, and start chatting with a single command:
+Clone, build, and start chatting with a single pair of commands:
 
-| Platform | Command |
-|----------|---------|
-| **macOS / Linux** | `curl -fsSL https://raw.githubusercontent.com/bmtowfiq2026-hue/Nexus/main/scripts/install.sh \| sh` |
-| **Windows PowerShell** | `iwr -useb https://raw.githubusercontent.com/bmtowfiq2026-hue/Nexus/main/scripts/install.ps1 \| iex` |
+| Platform | Step 1: Clone | Step 2: Install |
+|----------|--------------|-----------------|
+| **macOS / Linux** | `git clone https://github.com/bmtowfiq2026-hue/Nexus.git ~/.nexus-repo` | `bash ~/.nexus-repo/scripts/install.sh` |
+| **Windows PowerShell** | `git clone https://github.com/bmtowfiq2026-hue/Nexus.git $env:USERPROFILE\.nexus-repo` | `& "$env:USERPROFILE\.nexus-repo\scripts\install.ps1"` |
 
-The install script handles everything: installs Rust (if missing), clones the repo, builds the binary, adds it to your PATH, and runs `nexus init`. Then just run:
+The install script handles everything: installs Rust (if missing), builds the binary, adds it to your PATH, and runs `nexus init`. Then just run:
 
 ```bash
 nexus chat
