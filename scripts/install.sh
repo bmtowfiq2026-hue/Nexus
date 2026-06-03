@@ -46,7 +46,7 @@ if [ -d "$NEXUS_DIR/.git" ]; then
   cd "$NEXUS_DIR" && git pull --ff-only
 else
   echo "${YELLOW}Cloning Nexus repository...${NC}"
-  git clone --depth 1 https://github.com/nexus/nexus.git "$NEXUS_DIR"
+  git clone --depth 1 https://github.com/bmtowfiq2026-hue/Nexus.git "$NEXUS_DIR"
 fi
 
 # Build

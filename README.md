@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexus/nexus/actions"><img src="https://img.shields.io/github/actions/workflow/status/nexus/nexus/ci.yml?branch=main&style=flat-square" alt="CI"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/actions"><img src="https://img.shields.io/github/actions/workflow/status/nexus/nexus/ci.yml?branch=main&style=flat-square" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/rust-1.86+-orange.svg?style=flat-square" alt="Rust"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.22+-00ADD8.svg?style=flat-square" alt="Go"></a>
-  <a href="https://github.com/nexus/nexus/releases"><img src="https://img.shields.io/github/v/release/nexus/nexus?style=flat-square" alt="Release"></a>
-  <a href="https://github.com/nexus/nexus/stargazers"><img src="https://img.shields.io/github/stars/nexus/nexus?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/releases"><img src="https://img.shields.io/github/v/release/nexus/nexus?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/stargazers"><img src="https://img.shields.io/github/stars/nexus/nexus?style=flat-square" alt="Stars"></a>
   <a href="https://discord.gg/nexus"><img src="https://img.shields.io/badge/chat-discord-5865F2.svg?style=flat-square" alt="Discord"></a>
 </p>
 
@@ -38,11 +38,14 @@ Clone, build, and start chatting with a single command:
 
 | Platform | Command |
 |----------|---------|
-| **macOS / Linux** | `git clone https://github.com/nexus/nexus.git && cd nexus && cargo build --release && ./target/release/nexus init && ./target/release/nexus chat` |
-| **Windows PowerShell** | `git clone https://github.com/nexus/nexus.git; cd nexus; cargo build --release; .\target\release\nexus init; .\target\release\nexus chat` |
-| **Windows cmd.exe** | `git clone https://github.com/nexus/nexus.git && cd nexus && cargo build --release && .\target\release\nexus init && .\target\release\nexus chat` |
+| **macOS / Linux** | `curl -fsSL https://raw.githubusercontent.com/bmtowfiq2026-hue/Nexus/main/scripts/install.sh \| sh` |
+| **Windows PowerShell** | `iwr -useb https://raw.githubusercontent.com/bmtowfiq2026-hue/Nexus/main/scripts/install.ps1 \| iex` |
 
-After the command finishes, you'll see:
+The install script handles everything: installs Rust (if missing), clones the repo, builds the binary, adds it to your PATH, and runs `nexus init`. Then just run:
+
+```bash
+nexus chat
+```
 
 ```
 ✦ Nexus Agent ready (demo mode). Type '/quit' to exit.
@@ -51,10 +54,6 @@ Nexus: Hello! I'm Nexus, your autonomous AI agent.
 ```
 
 **Zero setup. No API keys. No accounts. Works on Windows, macOS, and Linux.**
-
-> **Prerequisite:** [Rust](https://rustup.rs) must be installed first. One-time install:
-> - **macOS/Linux:** `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-> - **Windows:** `winget install Rustlang.Rustup` or download from [rustup.rs](https://rustup.rs)
 
 ### Option 1: Try it now — zero setup, no API keys
 
@@ -67,7 +66,7 @@ Nexus: Hello! I'm Nexus, your autonomous AI agent.
 winget install Rustlang.Rustup
 
 # 2. Build Nexus
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 
@@ -83,7 +82,7 @@ cargo build --release
 ```cmd
 REM 1. Install Rust from https://rustup.rs
 REM 2. Build Nexus
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 
@@ -101,7 +100,7 @@ REM 4. Start chatting!
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # 2. Build Nexus
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 
@@ -117,7 +116,7 @@ cargo build --release
 All platforms:
 
 ```bash
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 docker compose up nexus
 ```
@@ -414,7 +413,7 @@ winget install Rustlang.Rustup
 winget install Git.Git
 
 # Build
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 
@@ -431,7 +430,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 xcode-select --install
 
 # Build
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 ```
@@ -446,7 +445,7 @@ sudo apt install curl pkg-config libssl-dev build-essential git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Build
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 ```
@@ -455,7 +454,7 @@ cargo build --release
 ```bash
 sudo dnf install pkg-config openssl-devel gcc git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-git clone https://github.com/nexus/nexus.git
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
 cd nexus
 cargo build --release
 ```
@@ -500,7 +499,7 @@ Report vulnerabilities per our [security policy](docs/SECURITY.md).
 ---
 
 <p align="center">
-  <a href="https://github.com/nexus/nexus">GitHub</a> •
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus">GitHub</a> •
   <a href="docs/CHANNELS.md">Channels</a> •
   <a href="docs/SECURITY.md">Security</a> •
   <a href="docs/TROUBLESHOOTING.md">Help</a>

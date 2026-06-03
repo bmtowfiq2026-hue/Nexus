@@ -30,7 +30,7 @@ if (Test-Path "$NexusDir\.git") {
     git pull --ff-only
 } else {
     Write-Host "Cloning Nexus repository..." -ForegroundColor Yellow
-    git clone --depth 1 "https://github.com/nexus/nexus.git" $NexusDir
+    git clone --depth 1 "https://github.com/bmtowfiq2026-hue/Nexus.git" $NexusDir
 }
 
 # Build
