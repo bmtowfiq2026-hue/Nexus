@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
 pub mod agent;
 pub mod audit;
 pub mod checkpoint;
@@ -9,9 +12,6 @@ pub mod sandbox;
 pub mod skills;
 pub mod tools;
 pub mod trajectory;
-
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 pub type Result<T> = std::result::Result<T, NexusError>;
 
@@ -95,9 +95,22 @@ impl Default for NexusConfig {
     }
 }
 
+fn get_config_path() -> String {
+    if let Ok(path) = std::env::var("NEXUS_CONFIG_PATH") {
+        return path;
+    }
+    if let Some(data_dir) = dirs::config_dir() {
+        let path = data_dir.join("nexus").join("nexus.json");
+        if path.exists() {
+            return path.to_string_lossy().to_string();
+        }
+    }
+    shellexpand::tilde("~/.nexus/nexus.json").to_string()
+}
+
 impl NexusConfig {
     pub fn load() -> Self {
-        let config_path = shellexpand::tilde("~/.nexus/nexus.json").to_string();
+        let config_path = get_config_path();
         if std::path::Path::new(&config_path).exists() {
             if let Ok(data) = std::fs::read_to_string(&config_path) {
                 if let Ok(cfg) = serde_json::from_str::<NexusConfig>(&data) {
@@ -109,7 +122,7 @@ impl NexusConfig {
     }
 
     pub fn save(&self) -> Result<()> {
-        let config_path = shellexpand::tilde("~/.nexus/nexus.json").to_string();
+        let config_path = get_config_path();
         if let Some(parent) = std::path::Path::new(&config_path).parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -126,5 +139,9 @@ impl NexusConfig {
                 Some(k.clone())
             }
         })
+    }
+
+    pub fn workspace_dir(&self) -> String {
+        shellexpand::tilde(&self.workspace).to_string()
     }
 }

@@ -179,6 +179,14 @@ impl AgentLoop {
             }
         }
 
+        {
+            let tools = self.tools.clone();
+            let tool_count = tools.get_definitions().len();
+            if response.content.len() < 20 && tool_count > 0 {
+                info!("Critique: short response with tools available — possible tool usage issue");
+            }
+        }
+
         let _snapshot_id = self.checkpoint_manager
             .lock().unwrap()
             .create_snapshot("after_turn", session, trajectory);

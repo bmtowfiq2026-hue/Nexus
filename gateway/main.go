@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -17,9 +19,16 @@ import (
 	"github.com/nexus/gateway/internal/channel/webchat"
 )
 
+var agentEndpoint string
+
 func main() {
 	log.SetPrefix("[nexus-gateway] ")
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	agentEndpoint = os.Getenv("NEXUS_AGENT_ENDPOINT")
+	if agentEndpoint == "" {
+		agentEndpoint = "http://localhost:9876"
+	}
 
 	cfg := loadConfig()
 	messageBus := bus.New()
@@ -36,19 +45,60 @@ func main() {
 	})
 
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"status":   "ok",
-			"service":  "nexus-gateway",
-			"version":  "0.1.0",
-			"channels": fmt.Sprintf("%v", registry.List()),
+			"status":        "ok",
+			"service":       "nexus-gateway",
+			"version":       "0.5.0",
+			"agent_url":     agentEndpoint,
+			"channels":      fmt.Sprintf("%v", registry.List()),
 		})
 	})
 
 	mux.HandleFunc("/channels", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(registry.List())
+	})
+
+	mux.HandleFunc("/api/message", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var msg struct {
+			SessionID string `json:"session_id"`
+			Content   string `json:"content"`
+			Channel   string `json:"channel"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if msg.Content == "" {
+			http.Error(w, "Content required", http.StatusBadRequest)
+			return
+		}
+
+		if msg.SessionID == "" {
+			msg.SessionID = fmt.Sprintf("gateway-%s", channel.NewRegistry())
+		}
+
+		agentResp, err := forwardToAgent(msg.SessionID, msg.Content)
+		if err != nil {
+			log.Printf("Agent error: %v", err)
+			http.Error(w, fmt.Sprintf("Agent error: %v", err), http.StatusBadGateway)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"session_id": msg.SessionID,
+			"response":   agentResp,
+		})
 	})
 
 	if ch, ok := registry.Get("webchat"); ok {
@@ -63,7 +113,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Gateway starting on port %d", cfg.Port)
+		log.Printf("Gateway starting on port %d (agent: %s)", cfg.Port, agentEndpoint)
 		for _, name := range registry.List() {
 			log.Printf("  Channel active: %s", name)
 		}
@@ -83,6 +133,45 @@ func main() {
 	log.Println("Shutting down gateway...")
 	registry.StopAll()
 	server.Close()
+}
+
+func forwardToAgent(sessionID, content string) (string, error) {
+	body := map[string]string{
+		"session_id": sessionID,
+		"message":    content,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("marshal error: %w", err)
+	}
+
+	resp, err := http.Post(
+		fmt.Sprintf("%s/api/agent", agentEndpoint),
+		"application/json",
+		bytes.NewReader(jsonBody),
+	)
+	if err != nil {
+		return "", fmt.Errorf("connection to agent failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response error: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("agent returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		Response string `json:"response"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return string(respBody), nil
+	}
+
+	return result.Response, nil
 }
 
 func registerWebChat(r *channel.Registry, cfg WebChatConfig) {
