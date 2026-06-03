@@ -27,7 +27,7 @@ nexus.log
 
 # Local runtime data
 data/
-memory/
+/memory/
 temp/
 
 # Python virtual envs (build scripts)
