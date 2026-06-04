@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Nexus Discord
-    url: https://discord.gg/nexus
-    about: Get help from the community
+  - name: Nexus Community
+    url: https://github.com/bmtowfiq2026-hue/Nexus/discussions
+    about: Ask questions and discuss ideas
   - name: Security Issues
-    url: https://github.com/nexus/nexus/security/policy
+    url: https://github.com/bmtowfiq2026-hue/Nexus/security/policy
     about: Report security vulnerabilities

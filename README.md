@@ -13,7 +13,7 @@
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.22+-00ADD8.svg?style=flat-square" alt="Go"></a>
   <a href="https://github.com/bmtowfiq2026-hue/Nexus/releases"><img src="https://img.shields.io/github/v/release/bmtowfiq2026-hue/Nexus?style=flat-square" alt="Release"></a>
   <a href="https://github.com/bmtowfiq2026-hue/Nexus/stargazers"><img src="https://img.shields.io/github/stars/bmtowfiq2026-hue/Nexus?style=flat-square" alt="Stars"></a>
-  <a href="#"><img src="https://img.shields.io/badge/chat-discord-5865F2.svg?style=flat-square" alt="Discord"></a>
+  <a href="https://github.com/bmtowfiq2026-hue/Nexus/discussions"><img src="https://img.shields.io/badge/discussions-181717.svg?style=flat-square" alt="Discussions"></a>
 </p>
 
 <p align="center">
