@@ -31,7 +31,7 @@ docker compose up nexus
 ## Option 3: Cargo Install (Coming Soon)
 
 ```bash
-cargo install nexus-cli
+cargo install nexus
 ```
 
 ## Post-Installation

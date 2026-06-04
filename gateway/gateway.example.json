@@ -1,37 +1,16 @@
 {
   "port": 8080,
-  "webchat": {
-    "enabled": true,
-    "path": "/chat",
-    "origins": ["http://localhost:3000"]
-  },
-  "discord": {
-    "enabled": true,
-    "bot_token": "YOUR_DISCORD_BOT_TOKEN",
-    "intents": ["GUILD_MESSAGES", "MESSAGE_CONTENT"]
-  },
-  "telegram": {
-    "enabled": true,
-    "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
-    "webhook_url": "https://your-domain.com/webhook/telegram"
-  },
-  "slack": {
-    "enabled": true,
-    "bot_token": "xoxb-YOUR-SLACK-BOT-TOKEN",
-    "app_token": "xapp-YOUR-SLACK-APP-TOKEN"
-  },
-  "signal": {
-    "enabled": false,
-    "phone_number": ""
-  },
-  "whatsapp": {
-    "enabled": false,
-    "api_key": ""
-  },
-  "matrix": {
-    "enabled": false,
-    "homeserver": "",
-    "access_token": ""
-  },
-  "log_level": "info"
+  "webchat": { "enabled": true, "path": "/ws" },
+  "discord": { "enabled": false, "bot_token": "YOUR_DISCORD_BOT_TOKEN" },
+  "telegram": { "enabled": false, "bot_token": "YOUR_TELEGRAM_BOT_TOKEN" },
+  "slack": { "enabled": false, "bot_token": "YOUR_SLACK_BOT_TOKEN", "app_token": "YOUR_SLACK_APP_TOKEN", "signing_secret": "YOUR_SLACK_SIGNING_SECRET" },
+  "matrix": { "enabled": false, "homeserver": "https://matrix.org", "access_token": "YOUR_MATRIX_TOKEN", "room_id": "!room:matrix.org" },
+  "whatsapp": { "enabled": false, "webhook_path": "/webhook/whatsapp", "verify_token": "YOUR_VERIFY_TOKEN", "api_token": "YOUR_WHATSAPP_TOKEN" },
+  "signal": { "enabled": false, "phone_number": "+1234567890", "signal_api": "http://localhost:8080" },
+  "irc": { "enabled": false, "server": "irc.libera.chat", "port": 6667, "nick": "nexus-bot", "channel": "#nexus", "password": "" },
+  "googlechat": { "enabled": false, "webhook_url": "YOUR_GOOGLE_CHAT_WEBHOOK_URL", "space_id": "" },
+  "msteams": { "enabled": false, "webhook_url": "YOUR_TEAMS_WEBHOOK_URL", "app_id": "", "app_secret": "" },
+  "line": { "enabled": false, "channel_secret": "YOUR_LINE_SECRET", "channel_token": "YOUR_LINE_TOKEN" },
+  "messenger": { "enabled": false, "page_id": "YOUR_PAGE_ID", "access_token": "YOUR_PAGE_ACCESS_TOKEN", "verify_token": "YOUR_VERIFY_TOKEN" },
+  "twilio": { "enabled": false, "account_sid": "YOUR_TWILIO_SID", "auth_token": "YOUR_TWILIO_AUTH_TOKEN", "from_number": "+1234567890" }
 }

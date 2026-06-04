@@ -1,55 +1,77 @@
 # Changelog
 
-All notable changes to Nexus will be documented in this file.
+## v0.5.0 (2026-06-04)
 
-## [0.5.0] - 2026-06-02
+### 🎉 New: 12 Gateway Channels
+Added messaging channel support to the Go gateway — connect Nexus to any platform:
 
-### Added
-- Trajectory recording — every agent action captured with timing and IO
-- Skill extraction engine — auto-generates SKILL.md from successful trajectories
-- Skill refiner — learns from failures, patches skills with recovery steps
-- Memory summarization — LLM-based conversation compression
-- Graph memory — entity extraction with typed relationships
-- Vector store — semantic similarity search with cosine distance
-- Checkpoint/rollback — snapshot/restore agent state at any turn
-- CLI `chat` mode with session support
+- **Matrix** — Client-Server API via webhook wrapper
+- **WhatsApp** — Webhook-based (Meta API)
+- **Signal** — Webhook-based (Signal Messenger REST API)
+- **IRC** — Native TCP implementation (NICK/USER/JOIN/PING-PONG)
+- **Google Chat** — Incoming webhook
+- **MSTeams** — Incoming webhook
+- **LINE** — Webhook-based (LINE Messaging API)
+- **Messenger** — Webhook-based (Facebook Messenger API)
+- **Twilio** — Webhook-based (Twilio SMS/WhatsApp API)
+- Plus existing: **WebChat**, **Discord**, **Telegram**, **Slack**
 
-### Changed
-- AgentLoop fully integrated with memory, trajectory, and checkpoint subsystems
-- Core library exposed via `lib.rs` re-exports
+All channels are disabled by default in `gateway.json` — set `"enabled": true` and add credentials to activate.
 
-## [0.4.0] - 2026-05-01
+### 🎉 New: 20+ LLM Providers
+Added generic OpenAI-compatible provider adapter supporting 22 providers:
 
-### Added
-- Discord channel (send messages, listen to events)
-- Telegram channel (send messages, inline keyboard support)
-- Slack channel (RTM + Web API)
-- WebSocket WebChat channel
-- In-process message bus
-- Session manager with turn history
+- **Google Gemini**, **DeepSeek**, **Groq**, **Together AI**, **Fireworks AI**
+- **OpenRouter**, **Perplexity**, **Mistral AI**, **Cohere**, **AI21 Labs**
+- **Replicate**, **HuggingFace**, **Cerebras**, **xAI (Grok)**
+- **LM Studio**, **LocalAI**, **oobabooga** (local/self-hosted)
+- **DeepInfra**, **SambaNova**, **Anyscale**
+- Plus existing: **OpenAI**, **Anthropic**, **Ollama**, **Demo**
 
-## [0.3.0] - 2026-04-15
+Set `<PROVIDER>_API_KEY` env var or use `nexus config set api_keys.<name> <key>`.
 
-### Added
-- Go gateway scaffold with `main.go`
-- Channel interface
-- Message bus skeleton
+### 🎉 New: Webchat UI
+Embedded HTML/CSS/JS chat interface served by the gateway at `/`:
+- WebSocket real-time messaging, auto-reconnect
+- Dark purple theme, session management
+- Markdown message rendering
 
-## [0.2.0] - 2026-04-01
+### 🎉 New: Onboard Setup Wizard
+Interactive `nexus onboard` command — guides through provider selection and API key setup.
 
-### Added
-- Rust workspace with `core/` library and `cli/` binary
-- OpenAI provider
-- Anthropic provider
-- Ollama provider
-- Tool system with built-in tools (read, write, search, fetch, exec)
-- Skill engine with parser
-- CLI `init`, `config show`, `skill list`, `skill install`
+### 🎉 New: Logo & Website
+- Professional SVG logos (neural network hexagon + "N") at `docs/assets/`
+- Pure static marketing site at `https://bmtowfiq2026-hue.github.io/nexus-website/`
+- No build step, no framework — single HTML file
 
-## [0.1.0] - 2026-03-15
+### 🔧 Improvements
+- Binary renamed from `nexus-cli` to `nexus` for simpler invocation
+- `nexus doctor` checks all configured providers
+- Gateway JSON config restructured with per-channel config objects
+- Install scripts updated for new binary name
 
-### Added
-- Project architecture planning
-- Competitive analysis (OpenClaw vs Hermes Agent)
-- Tech stack decisions
-- Repository scaffold
+### 🐛 Fixes
+- Vercel 404 resolved by replacing Next.js with pure static HTML
+
+### 📦 Package
+- Windows x86_64 release package: `nexus.exe` + `nexus-gateway.exe` + `gateway.json` + install script
+
+## v0.4.0 (2026-05-??)
+
+### Core Agent
+- Agent loop with tool calling, session management
+- Tool system: read, write, exec, web_search, web_fetch
+- Memory: SQLite full-text, vector store (cosine similarity), graph memory (entity/relation)
+
+### CLI
+- `nexus init`, `nexus chat`, `nexus run`, `nexus config`, `nexus skill`, `nexus doctor`
+- Demo mode (no API keys needed)
+- `--provider` flag for OpenAI/Anthropic/Ollama/Demo
+
+### Gateway
+- Discord, Telegram, Slack, WebSocket channels
+- Message bus routing architecture
+
+### Skills & Learning
+- Trajectory recording, skill extraction, skill refinement
+- Checkpoint/rollback system

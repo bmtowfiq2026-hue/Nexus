@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus WebChat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f17;--bg2:#1a1a2e;--bg3:#16213e;--text:#e4e4e7;--text2:#a1a1aa;--text3:#71717a;--primary:#6366f1;--primary-light:#818cf8;--primary-dark:#4f46e5;--border:rgba(255,255,255,0.06);--green:#22c55e;--red:#ef4444;--grad:linear-gradient(135deg,#6366f1,#a855f7)}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.app{display:flex;height:100vh;max-width:1400px;margin:0 auto;width:100%}
+
+/* Sidebar */
+.sidebar{width:280px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-header .logo{width:32px;height:32px;border-radius:8px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
+.sidebar-header h1{font-size:16px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-header .version{font-size:10px;color:var(--text3);-webkit-text-fill-color:var(--text3)}
+.sessions{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:4px}
+.session-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;text-align:left;transition:.15s;font-size:13px;width:100%;font-family:inherit}
+.session-btn:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.session-btn.active{background:rgba(99,102,241,0.1);color:var(--primary-light)}
+.session-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text3)}
+.session-btn.active .dot{background:var(--green)}
+.session-btn .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.new-chat-btn{padding:10px 12px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--text3);cursor:pointer;font-size:13px;font-family:inherit;text-align:center;transition:.15s;margin-top:4px}
+.new-chat-btn:hover{border-color:var(--primary);color:var(--primary-light)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-header h2{font-size:15px;font-weight:600}
+.chat-header .status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.chat-header .status-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.msg{display:flex;gap:12px;max-width:80%;animation:fadeIn .2s ease}
+.msg.user{margin-left:auto;flex-direction:row-reverse}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.msg.user .msg-avatar{background:var(--grad);color:#fff}
+.msg.bot .msg-avatar{background:rgba(255,255,255,0.06);color:var(--primary-light);border:1px solid var(--border)}
+.msg-bubble{padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.6}
+.msg.user .msg-bubble{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.msg.bot .msg-bubble{background:var(--bg2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg-bubble pre{background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin:8px 0;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:13px}
+.msg-bubble code{background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px}
+.msg-time{font-size:11px;color:var(--text3);margin-top:4px}
+.msg.user .msg-time{text-align:right}
+
+/* Input */
+.input-area{border-top:1px solid var(--border);padding:16px 24px;flex-shrink:0}
+.input-wrap{display:flex;gap:12px;align-items:flex-end;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 12px;transition:.2s}
+.input-wrap:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+.input-wrap textarea{flex:1;background:none;border:none;color:var(--text);font-size:14px;font-family:inherit;resize:none;outline:none;min-height:24px;max-height:120px;line-height:1.5}
+.input-wrap textarea::placeholder{color:var(--text3)}
+.send-btn{width:36px;height:36px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+.send-btn:hover{background:var(--primary-dark)}
+.send-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Typing */
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing span{width:8px;height:8px;border-radius:50%;background:var(--text3);animation:bounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+/* Connect */
+.connect-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:24px;text-align:center;padding:24px}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.connect-screen h2{font-size:20px;font-weight:600}
+.connect-screen p{color:var(--text2);font-size:14px}
+.connect-screen.error .spinner{display:none}
+.connect-screen.error h2{color:var(--red)}
+.retry-btn{margin-top:12px;padding:10px 24px;border-radius:8px;border:1px solid var(--primary);background:transparent;color:var(--primary-light);cursor:pointer;font-family:inherit;font-size:14px;transition:.15s}
+.retry-btn:hover{background:rgba(99,102,241,0.1)}
+
+@media(max-width:768px){
+  .sidebar{display:none}
+  .sidebar.open{display:flex;position:fixed;inset:0;z-index:100;width:100%}
+  .msg{max-width:90%}
+}
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">N</div>
+      <div><h1>Nexus</h1><div class="version">WebChat</div></div>
+    </div>
+    <div class="sessions" id="sessionList">
+      <button class="session-btn active" data-session="default">
+        <span class="dot"></span>
+        <span class="name">Default Chat</span>
+      </button>
+    </div>
+    <div style="padding:12px;border-top:1px solid var(--border)">
+      <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div id="connectScreen" class="connect-screen">
+      <div class="spinner"></div>
+      <h2>Connecting to Nexus...</h2>
+      <p>Establishing secure WebSocket connection</p>
+    </div>
+
+    <div id="chatInterface" style="display:none;flex-direction:column;height:100%">
+      <div class="chat-header">
+        <h2>Default Chat</h2>
+        <div class="status"><span class="status-dot"></span> Connected</div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea id="input" rows="1" placeholder="Type a message..." onkeydown="handleKey(event)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="send()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+const wsUrl = wsProto + '//' + location.host + '/ws'
+let ws = null
+let sessionId = 'default'
+let reconnectTimer = null
+
+function connect() {
+  const screen = document.getElementById('connectScreen')
+  const chat = document.getElementById('chatInterface')
+  screen.style.display = 'flex'
+  screen.className = 'connect-screen'
+  chat.style.display = 'none'
+
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    screen.style.display = 'none'
+    chat.style.display = 'flex'
+    addMessage('bot', 'Hello! I\'m Nexus, your autonomous AI agent. How can I help you today?')
+  }
+
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data)
+    if (data.type === 'response' || data.type === 'message') {
+      addMessage('bot', data.content)
+    }
+  }
+
+  ws.onclose = () => {
+    chat.style.display = 'none'
+    screen.style.display = 'flex'
+    screen.className = 'connect-screen error'
+    screen.querySelector('h2').textContent = 'Connection Lost'
+    screen.querySelector('p').textContent = 'Reconnecting in 5 seconds...'
+    screen.querySelector('.spinner').style.display = 'none'
+    if (!reconnectTimer) {
+      reconnectTimer = setTimeout(() => { reconnectTimer = null; connect() }, 5000)
+    }
+  }
+
+  ws.onerror = () => {
+    screen.querySelector('h2').textContent = 'Connection Failed'
+    screen.querySelector('p').textContent = 'Unable to reach Nexus gateway'
+    screen.className = 'connect-screen error'
+    screen.querySelector('.spinner').style.display = 'none'
+    const btn = document.createElement('button')
+    btn.className = 'retry-btn'
+    btn.textContent = 'Retry Connection'
+    btn.onclick = () => connect()
+    screen.appendChild(btn)
+  }
+}
+
+function send() {
+  const input = document.getElementById('input')
+  const text = input.value.trim()
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return
+
+  addMessage('user', text)
+  input.value = ''
+  input.style.height = 'auto'
+  document.getElementById('sendBtn').disabled = true
+
+  ws.send(JSON.stringify({ type: 'message', content: text }))
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    send()
+  }
+}
+
+function addMessage(role, content) {
+  const container = document.getElementById('messages')
+  const div = document.createElement('div')
+  div.className = 'msg ' + role
+
+  const avatar = document.createElement('div')
+  avatar.className = 'msg-avatar'
+  avatar.textContent = role === 'user' ? 'U' : 'N'
+
+  const bubble = document.createElement('div')
+  bubble.className = 'msg-bubble'
+  bubble.innerHTML = formatContent(content)
+
+  const time = document.createElement('div')
+  time.className = 'msg-time'
+  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  bubble.appendChild(time)
+  div.appendChild(avatar)
+  div.appendChild(bubble)
+  container.appendChild(div)
+  container.scrollTop = container.scrollHeight
+
+  if (role === 'user') {
+    document.getElementById('sendBtn').disabled = false
+    document.getElementById('input').focus()
+  }
+}
+
+function formatContent(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+}
+
+function newChat() {
+  sessionId = 'chat-' + Date.now()
+  document.getElementById('messages').innerHTML = ''
+  addMessage('bot', 'New conversation started. How can I help you?')
+}
+
+// Auto-resize textarea
+document.getElementById('input').addEventListener('input', function() {
+  this.style.height = 'auto'
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px'
+  document.getElementById('sendBtn').disabled = !this.value.trim()
+})
+
+connect()
+</script>
+</body>
+</html>

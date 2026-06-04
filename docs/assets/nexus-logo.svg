@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="nexus" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="nexusGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="200" rx="28" fill="#0a0a0f"/>
+
+  <!-- Outer hexagon connections -->
+  <polygon points="100,25 165,62.5 165,137.5 100,175 35,137.5 35,62.5"
+           fill="none" stroke="url(#nexus)" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Inner hexagon connections -->
+  <polygon points="100,58 145,83.5 145,116.5 100,142 55,116.5 55,83.5"
+           fill="none" stroke="url(#nexus)" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Spokes between hexagons -->
+  <g stroke="url(#nexus)" stroke-width="1.2" opacity="0.3">
+    <line x1="100" y1="25" x2="100" y2="58"/>
+    <line x1="165" y1="62.5" x2="145" y2="83.5"/>
+    <line x1="165" y1="137.5" x2="145" y2="116.5"/>
+    <line x1="100" y1="175" x2="100" y2="142"/>
+    <line x1="35" y1="137.5" x2="55" y2="116.5"/>
+    <line x1="35" y1="62.5" x2="55" y2="83.5"/>
+  </g>
+
+  <!-- Cross connections (neural network pattern) -->
+  <g stroke="url(#nexus)" stroke-width="0.8" opacity="0.25">
+    <line x1="165" y1="62.5" x2="100" y2="142"/>
+    <line x1="35" y1="62.5" x2="100" y2="142"/>
+    <line x1="100" y1="58" x2="165" y2="137.5"/>
+    <line x1="100" y1="58" x2="35" y2="137.5"/>
+  </g>
+
+  <!-- Outer nodes -->
+  <g fill="url(#nexus)">
+    <circle cx="100" cy="25" r="4.5"/>
+    <circle cx="165" cy="62.5" r="4.5"/>
+    <circle cx="165" cy="137.5" r="4.5"/>
+    <circle cx="100" cy="175" r="4.5"/>
+    <circle cx="35" cy="137.5" r="4.5"/>
+    <circle cx="35" cy="62.5" r="4.5"/>
+  </g>
+
+  <!-- Inner nodes -->
+  <g fill="url(#nexus)" opacity="0.7">
+    <circle cx="100" cy="58" r="3"/>
+    <circle cx="145" cy="83.5" r="3"/>
+    <circle cx="145" cy="116.5" r="3"/>
+    <circle cx="100" cy="142" r="3"/>
+    <circle cx="55" cy="116.5" r="3"/>
+    <circle cx="55" cy="83.5" r="3"/>
+  </g>
+
+  <!-- Letter N -->
+  <g stroke="url(#nexus)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M 76 66 L 76 134"/>
+    <path d="M 124 66 L 124 134"/>
+    <path d="M 76 66 L 124 134"/>
+  </g>
+</svg>

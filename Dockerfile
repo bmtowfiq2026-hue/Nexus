@@ -20,7 +20,7 @@ RUN cd gateway && go build -o /nexus-gateway .
 # Stage 3: Runtime image
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=rust-builder /app/target/release/nexus-cli /usr/local/bin/nexus
+COPY --from=rust-builder /app/target/release/nexus /usr/local/bin/nexus
 COPY --from=go-builder /nexus-gateway /usr/local/bin/nexus-gateway
 EXPOSE 8080
 ENTRYPOINT ["nexus"]

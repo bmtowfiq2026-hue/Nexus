@@ -2,6 +2,7 @@ pub mod openai;
 pub mod anthropic;
 pub mod ollama;
 pub mod demo;
+pub mod openai_compat;
 
 use crate::Result;
 use async_trait::async_trait;
@@ -79,3 +80,49 @@ impl Default for ProviderConfig {
         }
     }
 }
+
+pub const PROVIDERS: &[(&str, &str, &str)] = &[
+    ("openai",      "OpenAI",           "https://api.openai.com/v1"),
+    ("anthropic",   "Anthropic",        "https://api.anthropic.com/v1"),
+    ("google",      "Google Gemini",    "https://generativelanguage.googleapis.com/v1beta"),
+    ("deepseek",    "DeepSeek",         "https://api.deepseek.com/v1"),
+    ("groq",        "Groq",             "https://api.groq.com/openai/v1"),
+    ("together",    "Together AI",      "https://api.together.xyz/v1"),
+    ("fireworks",   "Fireworks AI",     "https://api.fireworks.ai/inference/v1"),
+    ("openrouter",  "OpenRouter",       "https://openrouter.ai/api/v1"),
+    ("perplexity",  "Perplexity",       "https://api.perplexity.ai"),
+    ("mistral",     "Mistral AI",       "https://api.mistral.ai/v1"),
+    ("cohere",      "Cohere",           "https://api.cohere.ai/v1"),
+    ("ai21",        "AI21 Labs",        "https://api.ai21.com/studio/v1"),
+    ("replicate",   "Replicate",        "https://api.replicate.com/v1"),
+    ("huggingface", "HuggingFace",      "https://api-inference.huggingface.co/v1"),
+    ("lmstudio",    "LM Studio",        "http://localhost:1234/v1"),
+    ("localai",     "LocalAI",          "http://localhost:8080/v1"),
+    ("textgen",     "oobabooga",        "http://localhost:5000/v1"),
+    ("ollama",      "Ollama",           "http://localhost:11434"),
+    ("together",    "Together AI",      "https://api.together.xyz/v1"),
+    ("deepinfra",   "DeepInfra",        "https://api.deepinfra.com/v1/openai"),
+];
+
+pub const OPENAI_COMPAT_PROVIDERS: &[(&str, &str, &str, &str)] = &[
+    ("google",      "Google Gemini",    "https://generativelanguage.googleapis.com/v1beta/openai",   "gemini-2.0-flash"),
+    ("deepseek",    "DeepSeek",         "https://api.deepseek.com/v1",                               "deepseek-chat"),
+    ("groq",        "Groq",             "https://api.groq.com/openai/v1",                            "llama3-70b-8192"),
+    ("together",    "Together AI",      "https://api.together.xyz/v1",                               "mistralai/Mixtral-8x22B-Instruct-v0.1"),
+    ("fireworks",   "Fireworks AI",     "https://api.fireworks.ai/inference/v1",                     "accounts/fireworks/models/llama-v3p1-70b-instruct"),
+    ("openrouter",  "OpenRouter",       "https://openrouter.ai/api/v1",                              "openai/gpt-4o"),
+    ("perplexity",  "Perplexity",       "https://api.perplexity.ai",                                 "sonar-pro"),
+    ("mistral",     "Mistral AI",       "https://api.mistral.ai/v1",                                 "mistral-large-latest"),
+    ("cohere",      "Cohere",           "https://api.cohere.ai/v1",                                  "command-r-plus"),
+    ("ai21",        "AI21 Labs",        "https://api.ai21.com/studio/v1",                            "jamba-1.5-large"),
+    ("replicate",   "Replicate",        "https://api.replicate.com/v1",                              "meta/meta-llama-3.1-405b-instruct"),
+    ("huggingface", "HuggingFace",      "https://api-inference.huggingface.co/v1",                   "meta-llama/Meta-Llama-3.1-70B-Instruct"),
+    ("cerebras",    "Cerebras",         "https://api.cerebras.ai/v1",                                "cerebras/Llama3.1-70B"),
+    ("xai",         "xAI (Grok)",       "https://api.x.ai/v1",                                       "grok-2"),
+    ("lmstudio",    "LM Studio",        "http://localhost:1234/v1",                                  "local-model"),
+    ("localai",     "LocalAI",          "http://localhost:8080/v1",                                  "gpt-4"),
+    ("textgen",     "oobabooga",        "http://localhost:5000/v1",                                  "model"),
+    ("deepinfra",   "DeepInfra",        "https://api.deepinfra.com/v1/openai",                       "mistralai/Mixtral-8x22B-Instruct-v0.1"),
+    ("sambanova",   "SambaNova",        "https://api.sambanova.ai/v1",                               "Meta-Llama-3.1-70B-Instruct"),
+    ("anyscale",    "Anyscale",         "https://api.endpoints.anyscale.com/v1",                      "meta-llama/Llama-2-70b-chat-hf"),
+];

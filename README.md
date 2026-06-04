@@ -124,7 +124,7 @@ docker compose up nexus
 ### Option 3: Install via Cargo (binary only)
 
 ```bash
-cargo install nexus-cli
+cargo install nexus
 nexus init
 nexus chat
 ```
@@ -135,28 +135,36 @@ nexus chat
 
 ### Connect a Real Provider
 
-#### Windows PowerShell
+Set the matching env var, then specify the provider:
+
+| Provider | Env Var | Default Model | Command |
+|----------|---------|--------------|---------|
+| OpenAI | `OPENAI_API_KEY` | `gpt-4o` | `nexus chat --provider openai` |
+| Anthropic | `ANTHROPIC_API_KEY` | `claude-3-opus-20240229` | `nexus chat --provider anthropic` |
+| Google Gemini | `GEMINI_API_KEY` | `gemini-2.0-flash-exp` | `nexus chat --provider gemini` |
+| DeepSeek | `DEEPSEEK_API_KEY` | `deepseek-chat` | `nexus chat --provider deepseek` |
+| Groq | `GROQ_API_KEY` | `llama3-70b-8192` | `nexus chat --provider groq` |
+| Together AI | `TOGETHER_API_KEY` | `mistralai/Mixtral-8x22B-Instruct-v0.1` | `nexus chat --provider together` |
+| xAI (Grok) | `XAI_API_KEY` | `grok-beta` | `nexus chat --provider xai` |
+| Perplexity | `PERPLEXITY_API_KEY` | `llama-3-sonar-large-32k-online` | `nexus chat --provider perplexity` |
+| OpenRouter | `OPENROUTER_API_KEY` | `openai/gpt-4o` | `nexus chat --provider openrouter` |
+
+#### Example (Windows PowerShell)
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
-.\target\release\nexus chat --provider openai
+$env:GEMINI_API_KEY="AIza..."
+.\target\release\nexus chat --provider gemini
 ```
 
-#### Windows cmd.exe
-```cmd
-set OPENAI_API_KEY=sk-...
-.\target\release\nexus chat --provider openai
-```
-
-#### macOS / Linux
+#### Example (macOS / Linux)
 ```bash
-export OPENAI_API_KEY="sk-..."
-./target/release/nexus chat --provider openai
+export DEEPSEEK_API_KEY="sk-..."
+./target/release/nexus chat --provider deepseek
 ```
 
 #### Or set it permanently:
 ```bash
-nexus config set api_keys.openai "sk-..."
-nexus chat --provider openai
+nexus config set api_keys.gemini "AIza..."
+nexus chat --provider gemini
 ```
 
 #### Free alternative — Ollama (local, no API key):
@@ -179,7 +187,7 @@ nexus doctor
 
 Output:
 ```
-🦞 Nexus System Check
+✦ Nexus System Check
 ──────────────────────────────────────────────────
 
   ✓ Workspace at /home/user/.nexus (4 files)
@@ -187,9 +195,13 @@ Output:
 
   → Providers:
     ✓ OpenAI API key configured
-    ✗ Anthropic — run 'nexus config set api_keys.anthropic <key>'
+    ✓ Gemini (Google) via GEMINI_API_KEY env var
     ✓ Ollama running at http://localhost:11434
     ✓ Demo mode always available (no setup needed)
+    ℹ Anthropic — set ANTHROPIC_API_KEY for Claude
+    ℹ DeepSeek — set DEEPSEEK_API_KEY
+    ℹ Groq — set GROQ_API_KEY
+    ℹ 15+ more providers available via env vars
 
   ℹ CLI version: 0.5.0
   ℹ Default provider: demo
@@ -248,10 +260,19 @@ cd gateway && go build -o nexus-gateway .
 ```json
 {
   "port": 8080,
-  "webchat":  { "enabled": true,  "path": "/ws" },
-  "discord":  { "enabled": false, "bot_token": "" },
-  "telegram": { "enabled": false, "bot_token": "" },
-  "slack":    { "enabled": false, "bot_token": "" }
+  "webchat":   { "enabled": true,  "path": "/ws" },
+  "discord":   { "enabled": false, "bot_token": "" },
+  "telegram":  { "enabled": false, "bot_token": "" },
+  "slack":     { "enabled": false, "bot_token": "" },
+  "matrix":    { "enabled": false, "homeserver_url": "", "access_token": "" },
+  "whatsapp":  { "enabled": false, "webhook_secret": "", "verify_token": "" },
+  "signal":    { "enabled": false, "phone_number": "" },
+  "irc":       { "enabled": false, "server": "irc.libera.chat", "nick": "nexus-bot" },
+  "googlechat": { "enabled": false, "webhook_url": "" },
+  "msteams":   { "enabled": false, "webhook_url": "" },
+  "line":      { "enabled": false, "channel_secret": "", "access_token": "" },
+  "messenger": { "enabled": false, "page_access_token": "", "verify_token": "" },
+  "twilio":    { "enabled": false, "account_sid": "", "auth_token": "" }
 }
 ```
 
@@ -337,15 +358,61 @@ AgentLoop.run_turn()
 
 ## Channels
 
-| Channel | Status | Setup |
-|---------|--------|-------|
-| WebChat | ✅ Ready | [Guide](docs/CHANNELS.md#webchat) |
-| Discord | ✅ Ready | [Guide](docs/CHANNELS.md#discord) |
-| Telegram | ✅ Ready | [Guide](docs/CHANNELS.md#telegram) |
-| Slack | ✅ Ready | [Guide](docs/CHANNELS.md#slack) |
-| Signal | 🔜 Planned | — |
-| WhatsApp | 🔜 Planned | — |
-| Matrix | 🔜 Planned | — |
+| Channel | Type | Status | Setup |
+|---------|------|--------|-------|
+| WebChat | WebSocket | ✅ Ready | [Guide](docs/CHANNELS.md#webchat) |
+| Discord | Gateway API | ✅ Ready | [Guide](docs/CHANNELS.md#discord) |
+| Telegram | Bot API | ✅ Ready | [Guide](docs/CHANNELS.md#telegram) |
+| Slack | Events API | ✅ Ready | [Guide](docs/CHANNELS.md#slack) |
+| Matrix | Client-Server API | ✅ Ready | [Guide](docs/CHANNELS.md#matrix) |
+| IRC | Native TCP | ✅ Ready | [Guide](docs/CHANNELS.md#irc) |
+| WhatsApp | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#whatsapp) |
+| Signal | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#signal) |
+| Google Chat | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#googlechat) |
+| MSTeams | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#msteams) |
+| LINE | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#line) |
+| Messenger | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#messenger) |
+| Twilio | Webhook | ✅ Ready | [Guide](docs/CHANNELS.md#twilio) |
+
+## Providers
+
+Nexus supports **20+ LLM providers** through a generic OpenAI-compatible adapter. Set the matching env var or use `nexus config set` to configure.
+
+| Provider | Base URL | Default Model | Env Var |
+|----------|----------|--------------|---------|
+| **OpenAI** | `https://api.openai.com/v1` | `gpt-4o` | `OPENAI_API_KEY` |
+| **Anthropic** | `https://api.anthropic.com/v1` | `claude-3-opus-20240229` | `ANTHROPIC_API_KEY` |
+| **Google Gemini** | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.0-flash-exp` | `GEMINI_API_KEY` |
+| **DeepSeek** | `https://api.deepseek.com/v1` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
+| **Groq** | `https://api.groq.com/openai/v1` | `llama3-70b-8192` | `GROQ_API_KEY` |
+| **Together AI** | `https://api.together.xyz/v1` | `mistralai/Mixtral-8x22B-Instruct-v0.1` | `TOGETHER_API_KEY` |
+| **Fireworks AI** | `https://api.fireworks.ai/inference/v1` | `accounts/fireworks/models/llama-v3-70b-instruct` | `FIREWORKS_API_KEY` |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | `openai/gpt-4o` | `OPENROUTER_API_KEY` |
+| **Perplexity** | `https://api.perplexity.ai` | `llama-3-sonar-large-32k-online` | `PERPLEXITY_API_KEY` |
+| **Mistral AI** | `https://api.mistral.ai/v1` | `mistral-large-latest` | `MISTRAL_API_KEY` |
+| **Cohere** | `https://api.cohere.com/v1` | `command-r-plus` | `COHERE_API_KEY` |
+| **AI21 Labs** | `https://api.ai21.com/studio/v1` | `jamba-instruct` | `AI21_API_KEY` |
+| **Replicate** | `https://api.replicate.com/v1` | `meta/llama-2-70b-chat` | `REPLICATE_API_KEY` |
+| **HuggingFace** | `https://api-inference.huggingface.co/v1` | `meta-llama/Llama-3.1-70B-Instruct` | `HUGGINGFACE_API_KEY` |
+| **Cerebras** | `https://api.cerebras.ai/v1` | `llama3.1-8b` | `CEREBRAS_API_KEY` |
+| **xAI (Grok)** | `https://api.x.ai/v1` | `grok-beta` | `XAI_API_KEY` |
+| **LM Studio** | `http://localhost:1234/v1` | `local-model` | `LM_STUDIO_API_KEY` |
+| **LocalAI** | `http://localhost:8080/v1` | `gpt-4` | `LOCALAI_API_KEY` |
+| **oobabooga** | `http://localhost:5000/v1` | `local-model` | `OOBABOOGA_API_KEY` |
+| **DeepInfra** | `https://api.deepinfra.com/v1/openai` | `meta-llama/Meta-Llama-3.1-70B-Instruct` | `DEEPINFRA_API_KEY` |
+| **SambaNova** | `https://api.sambanova.ai/v1` | `Meta-Llama-3.1-70B-Instruct` | `SAMBANOVA_API_KEY` |
+| **Anyscale** | `https://api.endpoints.anyscale.com/v1` | `meta-llama/Meta-Llama-3-70B-Instruct` | `ANYSCALE_API_KEY` |
+| **Ollama** ⚡ | `http://localhost:11434/v1` | `llama3` | — |
+| **Demo** 🎯 | — | — | — |
+
+> ⚡ **Ollama** runs locally with no API key required. Install from [ollama.ai](https://ollama.ai).
+> 🎯 **Demo mode** works immediately with no setup — perfect for testing the CLI and tool system.
+
+You can also configure any **custom OpenAI-compatible** endpoint:
+```bash
+nexus config set api_keys.base_url "https://my-custom-endpoint/v1"
+nexus chat --provider openai_compat
+```
 
 ## Project Structure
 
@@ -358,7 +425,7 @@ nexus/
 │       ├── memory/         # FTS, vector store, graph, summarizer
 │       ├── skills/         # Engine, parser, refiner
 │       ├── tools/          # Tool registry + built-in tools
-│       ├── providers/      # OpenAI, Anthropic, Ollama, Demo
+│       ├── providers/      # 20+ providers (OpenAI, Anthropic, Ollama, Demo, Gemini, DeepSeek, Groq, etc.)
 │       ├── trajectory/     # Recording + skill extraction
 │       ├── checkpoint/     # State snapshots + rollback
 │       └── identity/       # DID-based cryptographic identity
@@ -366,7 +433,7 @@ nexus/
 │   └── src/main.rs
 ├── gateway/                # Go messaging gateway
 │   ├── main.go
-│   └── internal/           # Channels, message bus, sessions
+│   └── internal/channel/   # 12 channel implementations + webhook base
 ├── docs/
 │   ├── SECURITY.md         # Security model
 │   ├── CHANNELS.md         # Channel setup guides
@@ -461,19 +528,20 @@ cargo build --release
 
 ## Roadmap
 
-- [x] **Phase 1:** Core agent loop, CLI, 3 LLM providers, tool system
-- [x] **Phase 2:** Multi-channel gateway (Discord, Telegram, Slack, WebChat)
+- [x] **Phase 1:** Core agent loop, CLI, 20+ LLM providers, tool system
+- [x] **Phase 2:** 13-channel gateway (Discord, Telegram, Slack, WebChat, Matrix, WhatsApp, Signal, IRC, Google Chat, MSTeams, LINE, Messenger, Twilio)
 - [x] **Phase 3:** Learning loop, trajectory recording, skill extraction, graph/vector memory, checkpointing
-- [ ] **Phase 4:** Agent DNA (DID identity), immutable audit trail
-- [ ] **Phase 5:** Visual Agent Studio (drag-and-drop workflow builder)
-- [ ] **Phase 6:** Agent roaming (P2P network, federated learning)
-- [ ] **Phase 7:** Mobile apps (iOS + Android)
+- [ ] **Phase 4:** Webchat UI polish, session persistence, multi-user support
+- [ ] **Phase 5:** Agent DNA (DID identity), immutable audit trail
+- [ ] **Phase 6:** Visual Agent Studio (drag-and-drop workflow builder)
+- [ ] **Phase 7:** Agent roaming (P2P network, federated learning)
+- [ ] **Phase 8:** Mobile apps (iOS + Android)
 
 ## Comparison
 
 | Feature | OpenClaw | Hermes Agent | **Nexus** |
 |---------|----------|-------------|-----------|
-| Channels | 20+ | 14 | **25+** |
+| Channels | 20+ | 14 | **13** |
 | Demo mode | ✗ | ✗ | **✓** |
 | Learning Loop | ✗ | ✓ | **✓** |
 | Skill Auto-Creation | ✗ | ✓ | **✓ + Refinement** |

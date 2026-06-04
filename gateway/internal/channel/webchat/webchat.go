@@ -14,7 +14,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:     func(r *http.Request) bool { return true },
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
@@ -47,17 +47,34 @@ func NewChannel(cfg Config) *WebChatChannel {
 	}
 }
 
-func (w *WebChatChannel) Name() string {
-	return "webchat"
-}
+func (w *WebChatChannel) Name() string { return "webchat" }
 
 func (w *WebChatChannel) Start(b *bus.Bus) error {
 	if !w.config.Enabled {
-		log.Println("[webchat] Channel disabled, skipping")
+		log.Println("[webchat] Disabled, skipping")
 		return nil
 	}
 	w.bus = b
-	log.Println("[webchat] Channel ready")
+
+	b.Subscribe("agent:response", func(msg bus.Message) (bus.Response, error) {
+		w.mu.RLock()
+		defer w.mu.RUnlock()
+		for _, c := range w.clients {
+			if c.sessionID == msg.SessionID {
+				resp, _ := json.Marshal(map[string]string{
+					"type":    "response",
+					"content": msg.Content,
+				})
+				select {
+				case c.send <- resp:
+				default:
+				}
+			}
+		}
+		return bus.Response{SessionID: msg.SessionID, Content: msg.Content}, nil
+	})
+
+	log.Println("[webchat] Ready")
 	return nil
 }
 
@@ -72,12 +89,19 @@ func (w *WebChatChannel) Stop() error {
 }
 
 func (w *WebChatChannel) RegisterRoutes(mux *http.ServeMux) {
-	path := w.config.Path
-	if path == "" {
-		path = "/ws"
-	}
+	mux.HandleFunc("/", w.handleRoot)
 	mux.HandleFunc("/api/chat", w.handleREST)
-	mux.HandleFunc(path, w.handleWS)
+	mux.HandleFunc("/ws", w.handleWS)
+}
+
+func (w *WebChatChannel) handleRoot(rw http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(rw, r)
+		return
+	}
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write([]byte(ChatHTML))
 }
 
 func (w *WebChatChannel) handleREST(rw http.ResponseWriter, r *http.Request) {
@@ -85,7 +109,6 @@ func (w *WebChatChannel) handleREST(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	var msg struct {
 		SessionID string `json:"session_id"`
 		Content   string `json:"content"`
@@ -94,23 +117,14 @@ func (w *WebChatChannel) handleREST(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Invalid body", http.StatusBadRequest)
 		return
 	}
-
 	sess, ok := w.session.Get(msg.SessionID)
 	if !ok {
 		sess = w.session.GetOrCreate("webchat", msg.SessionID)
 	}
-
 	w.bus.PublishAsync("message:"+sess.ID, bus.Message{
-		Channel:   "webchat",
-		UserID:    sess.UserID,
-		SessionID: sess.ID,
-		Content:   msg.Content,
+		Channel: "webchat", UserID: sess.UserID, SessionID: sess.ID, Content: msg.Content,
 	})
-
-	json.NewEncoder(rw).Encode(map[string]string{
-		"session_id": sess.ID,
-		"status":     "received",
-	})
+	json.NewEncoder(rw).Encode(map[string]string{"session_id": sess.ID, "status": "received"})
 }
 
 func (w *WebChatChannel) handleWS(rw http.ResponseWriter, r *http.Request) {
@@ -119,23 +133,16 @@ func (w *WebChatChannel) handleWS(rw http.ResponseWriter, r *http.Request) {
 		log.Printf("[webchat] Upgrade error: %v", err)
 		return
 	}
-
 	userID := uuid.New().String()
 	sess := w.session.GetOrCreate("webchat", userID)
-
 	client := &wsClient{
-		conn:      conn,
-		sessionID: sess.ID,
-		userID:    userID,
-		send:      make(chan []byte, 256),
+		conn: conn, sessionID: sess.ID, userID: userID,
+		send: make(chan []byte, 256),
 	}
-
 	w.mu.Lock()
 	w.clients[userID] = client
 	w.mu.Unlock()
-
 	log.Printf("[webchat] Client connected: %s (session: %s)", userID, sess.ID)
-
 	go w.writePump(client)
 	go w.readPump(client, sess)
 }
@@ -147,20 +154,17 @@ func (w *WebChatChannel) readPump(client *wsClient, sess *session.Session) {
 		w.mu.Unlock()
 		client.conn.Close()
 	}()
-
 	client.conn.SetReadLimit(65536)
 	client.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	client.conn.SetPongHandler(func(string) error {
 		client.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
-
 	for {
 		_, msg, err := client.conn.ReadMessage()
 		if err != nil {
 			break
 		}
-
 		var incoming struct {
 			Type    string `json:"type"`
 			Content string `json:"content"`
@@ -168,17 +172,13 @@ func (w *WebChatChannel) readPump(client *wsClient, sess *session.Session) {
 		if err := json.Unmarshal(msg, &incoming); err != nil {
 			continue
 		}
-
 		if incoming.Type == "ping" {
 			client.send <- []byte(`{"type":"pong"}`)
 			continue
 		}
-
 		w.bus.PublishAsync("message:"+sess.ID, bus.Message{
-			Channel:   "webchat",
-			UserID:    client.userID,
-			SessionID: sess.ID,
-			Content:   incoming.Content,
+			Channel: "webchat", UserID: client.userID,
+			SessionID: sess.ID, Content: incoming.Content,
 		})
 	}
 }
@@ -189,7 +189,6 @@ func (w *WebChatChannel) writePump(client *wsClient) {
 		ticker.Stop()
 		client.conn.Close()
 	}()
-
 	for {
 		select {
 		case msg, ok := <-client.send:

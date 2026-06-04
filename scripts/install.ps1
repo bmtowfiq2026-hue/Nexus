@@ -41,7 +41,7 @@ cargo build --release
 # Install binary
 $BinDir = "$env:USERPROFILE\.nexus-bin"
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
-Copy-Item "$NexusDir\target\release\nexus-cli.exe" "$BinDir\nexus.exe" -Force
+Copy-Item "$NexusDir\target\release\nexus.exe" "$BinDir\nexus.exe" -Force
 
 # Add to PATH
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")

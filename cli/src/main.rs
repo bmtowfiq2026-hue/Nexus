@@ -7,6 +7,7 @@ use nexus_core::memory::vector::VectorStore;
 use nexus_core::memory::MemoryStore;
 use nexus_core::providers::demo::DemoProvider;
 use nexus_core::providers::openai::OpenAIProvider;
+use nexus_core::providers::openai_compat::OpenAICompatProvider;
 use nexus_core::providers::ProviderConfig;
 use nexus_core::skills::SkillEngine;
 use nexus_core::tools::ToolDispatcher;
@@ -25,73 +26,48 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Initialize a new Nexus workspace
     Init {
-        /// Path for the workspace (default: ~/.nexus)
         #[arg(short, long)]
         path: Option<String>,
-        /// Interactive onboarding wizard
         #[arg(short, long)]
         wizard: bool,
     },
-    /// Start an interactive chat session (default: demo)
     Chat {
-        /// Provider to use (demo, openai, anthropic, ollama)
         #[arg(short, long, default_value = "demo")]
         provider: String,
-        /// Model to use
         #[arg(short, long)]
         model: Option<String>,
     },
-    /// Run a single command and exit
     Run {
-        /// The instruction for the agent
         #[arg(long)]
         prompt: String,
-        /// Provider to use (demo, openai, anthropic, ollama)
         #[arg(short, long, default_value = "demo")]
         provider: String,
     },
-    /// Configure Nexus settings
     Config {
         #[command(subcommand)]
         action: ConfigAction,
     },
-    /// List and manage skills
     Skill {
         #[command(subcommand)]
         action: SkillAction,
     },
-    /// Check system health and detect available providers
     Doctor,
-    /// Alias for init --wizard
     Onboard,
 }
 
 #[derive(Subcommand)]
 enum ConfigAction {
-    /// View current configuration
     Show,
-    /// Set a configuration value (e.g. api_keys.openai sk-...)
-    Set {
-        key: String,
-        value: String,
-    },
-    /// Delete a configuration key
-    Delete {
-        key: String,
-    },
+    Set { key: String, value: String },
+    Delete { key: String },
 }
 
 #[derive(Subcommand)]
 enum SkillAction {
-    /// List installed skills
     List,
-    /// Install a skill from a file
     Install { path: String },
-    /// Activate a skill
     Activate { name: String },
-    /// Deactivate a skill
     Deactivate { name: String },
 }
 
@@ -105,11 +81,8 @@ async fn main() -> anyhow::Result<()> {
 
     match &cli.command {
         Commands::Init { path, wizard } => {
-            if *wizard {
-                cmd_onboard(path.as_deref()).await
-            } else {
-                cmd_init(path.as_deref()).await
-            }
+            if *wizard { cmd_onboard(path.as_deref()).await }
+            else { cmd_init(path.as_deref()).await }
         }
         Commands::Chat { provider, model } => cmd_chat(provider, model.as_deref()).await,
         Commands::Run { prompt, provider } => cmd_run(prompt, provider).await,
@@ -131,42 +104,41 @@ async fn cmd_init(path: Option<&str>) -> anyhow::Result<()> {
 
     let skills_dir = std::path::Path::new(&expanded).join("skills");
     std::fs::create_dir_all(&skills_dir)?;
-
     let memory_dir = std::path::Path::new(&expanded).join("memory");
     std::fs::create_dir_all(&memory_dir)?;
 
-    println!(
-        "{} Nexus workspace initialized at {}",
-        "\u{2713}".green().bold(),
-        expanded.cyan()
-    );
+    println!("{} Nexus workspace initialized at {}", "\u{2713}".green().bold(), expanded.cyan());
     println!("  Config: {}", config_path.display().to_string().cyan());
     println!("  Skills: {}", skills_dir.display().to_string().cyan());
     println!("  Memory: {}", memory_dir.display().to_string().cyan());
     println!();
-    println!("{} Run 'nexus chat' to start interacting with your agent.", "\u{2192}".blue());
+    println!("{} Run 'nexus chat' to start interacting.", "\u{2192}".blue());
     println!("  {}", "(No API key needed \u{2014} uses demo mode by default)".dimmed());
     println!("  {}", "Or run 'nexus onboard' for a guided setup.".dimmed());
-
     Ok(())
 }
 
 async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
     use std::io::Write;
+    let providers_list = nexus_core::providers::OPENAI_COMPAT_PROVIDERS;
 
-    println!("{}", "\u{1f99e} Nexus Onboarding Wizard".cyan().bold());
-    println!("{}", "Let's get you set up!\n".dimmed());
-    println!("{} Choose a provider:", "\u{2192}".blue());
-    println!("  1. Demo mode (no setup needed)");
-    println!("  2. Ollama (free, local)");
-    println!("  3. OpenAI (requires API key)");
-    println!("  4. Anthropic (requires API key)");
+    println!("{}", "== Nexus Setup Wizard ==".cyan().bold());
+    println!("{}\n", "Let's get you set up with an AI provider.".dimmed());
+
+    println!("Choose a provider:");
+    println!("  1) Demo mode (no setup needed)");
+    println!("  2) Ollama (free, local)");
+    println!("  3) OpenAI");
+    println!("  4) Anthropic");
+    for (i, (_, display, _, _)) in providers_list.iter().enumerate() {
+        println!("  {}) {} ({})", i + 5, display, providers_list[i].2);
+    }
     println!();
 
     let mut config = NexusConfig::load();
 
     loop {
-        print!("  Selection [1-4, default=1]: ");
+        print!("  Selection [1-{}, default=1]: ", providers_list.len() + 4);
         std::io::stdout().flush()?;
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
@@ -198,9 +170,8 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
                 std::io::stdout().flush()?;
                 let mut key = String::new();
                 std::io::stdin().read_line(&mut key)?;
-                let key = key.trim().to_string();
-                config.api_keys.insert("openai".to_string(), key);
-                println!("{} Using OpenAI with model 'gpt-4o'.", "\u{2713}".green());
+                config.api_keys.insert("openai".to_string(), key.trim().to_string());
+                println!("{} Using OpenAI.", "\u{2713}".green());
                 break;
             }
             "4" => {
@@ -210,20 +181,36 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
                 std::io::stdout().flush()?;
                 let mut key = String::new();
                 std::io::stdin().read_line(&mut key)?;
-                let key = key.trim().to_string();
-                config.api_keys.insert("anthropic".to_string(), key);
-                println!("{} Using Anthropic with model 'claude-3-opus-20240229'.", "\u{2713}".green());
+                config.api_keys.insert("anthropic".to_string(), key.trim().to_string());
+                println!("{} Using Anthropic.", "\u{2713}".green());
                 break;
             }
             _ => {
+                if let Ok(n) = choice.parse::<usize>() {
+                    if n >= 5 && n <= providers_list.len() + 4 {
+                        let idx = n - 5;
+                        let (name, display, _base_url, default_model) = providers_list[idx];
+                        config.default_provider = name.to_string();
+                        config.default_model = default_model.to_string();
+                        print!("  {} API Key (or press Enter for env var): ", display);
+                        std::io::stdout().flush()?;
+                        let mut key = String::new();
+                        std::io::stdin().read_line(&mut key)?;
+                        let key = key.trim();
+                        if !key.is_empty() {
+                            config.api_keys.insert(name.to_string(), key.to_string());
+                        }
+                        println!("{} Using {} with model '{}'.", "\u{2713}".green(), display, default_model);
+                        break;
+                    }
+                }
                 println!("{} Invalid choice, try again.", "\u{2717}".red());
             }
         }
     }
 
     config.save()?;
-    println!();
-    println!("{} Setup complete! Run 'nexus chat' to start.", "\u{2713}".green().bold());
+    println!("\n{} Setup complete! Run 'nexus chat' to start.", "\u{2713}".green().bold());
     Ok(())
 }
 
@@ -234,42 +221,26 @@ async fn cmd_chat(provider_name: &str, model: Option<&str>) -> anyhow::Result<()
     tools.register_builtins();
     let skills = SkillEngine::new();
     let memory = MemoryStore::new(&config.memory.store_path);
-
     let vector_store = Arc::new(VectorStore::new(&config.memory.store_path, config.memory.vector_dimensions));
     let graph_memory = Arc::new(std::sync::Mutex::new(GraphMemory::new()));
 
     let mut agent = AgentLoop::new(
-        config,
-        provider,
-        Arc::new(tools),
-        Arc::new(skills),
-        Arc::new(std::sync::Mutex::new(memory)),
-        vector_store,
-        graph_memory,
+        config, provider, Arc::new(tools), Arc::new(skills),
+        Arc::new(std::sync::Mutex::new(memory)), vector_store, graph_memory,
     );
 
-    let mut session = Session::new(
-        uuid::Uuid::new_v4().to_string(),
-        "cli".to_string(),
-        "local".to_string(),
-    );
+    let mut session = Session::new(uuid::Uuid::new_v4().to_string(), "cli".to_string(), "local".to_string());
 
     if provider_name == "demo" {
-        println!(
-            "{} Nexus Agent ready (demo mode). Type '{}' to exit.\n",
-            "\u{2726}".cyan().bold(),
-            "/quit".yellow()
-        );
+        println!("{} Nexus Agent ready (demo mode). Type '{}' to exit.\n", "\u{2726}".cyan().bold(), "/quit".yellow());
         println!("  {} Run with a real provider:", "\u{2139}".blue().dimmed());
-        println!("    {} nexus chat --provider openai  (set OPENAI_API_KEY)", "  \u{2022}".dimmed());
-        println!("    {} nexus chat --provider ollama   (run Ollama locally)", "  \u{2022}".dimmed());
+        for (name, _display, _, _) in nexus_core::providers::OPENAI_COMPAT_PROVIDERS.iter().take(5) {
+            println!("    {} nexus chat --provider {}  (set {}_API_KEY)", " \u{2022}".dimmed(), name.cyan(), name.to_uppercase().yellow());
+        }
+        println!("    {} nexus chat --provider ollama   (run Ollama locally)", " \u{2022}".dimmed());
         println!();
     } else {
-        println!(
-            "{} Nexus Agent ready. Type '{}' to exit.\n",
-            "\u{2726}".cyan().bold(),
-            "/quit".yellow()
-        );
+        println!("{} Nexus Agent ready. Type '{}' to exit.\n", "\u{2726}".cyan().bold(), "/quit".yellow());
     }
 
     loop {
@@ -280,37 +251,19 @@ async fn cmd_chat(provider_name: &str, model: Option<&str>) -> anyhow::Result<()
         std::io::stdin().read_line(&mut input)?;
         let input = input.trim();
 
-        if input.is_empty() {
-            continue;
-        }
-
-        if input == "/quit" || input == "/exit" {
-            break;
-        }
-
-        if input == "/help" {
-            print_help();
-            continue;
-        }
-
-        if input == "/doctor" {
-            cmd_doctor().await?;
-            continue;
-        }
+        if input.is_empty() { continue; }
+        if input == "/quit" || input == "/exit" { break; }
+        if input == "/help" { print_help(); continue; }
+        if input == "/doctor" { cmd_doctor().await?; continue; }
 
         print!("{} ", "Nexus:".cyan().bold());
         std::io::stdout().flush()?;
 
         match agent.run_turn(&mut session, input).await {
-            Ok(response) => {
-                println!("{}", response);
-            }
-            Err(e) => {
-                println!("{} Error: {}", "\u{2717}".red().bold(), e);
-            }
+            Ok(response) => println!("{}", response),
+            Err(e) => println!("{} Error: {}", "\u{2717}".red().bold(), e),
         }
     }
-
     Ok(())
 }
 
@@ -321,7 +274,6 @@ async fn cmd_run(prompt: &str, provider_name: &str) -> anyhow::Result<()> {
     tools.register_builtins();
     let skills = SkillEngine::new();
     let memory = MemoryStore::new(&config.memory.store_path);
-
     let vector_store = Arc::new(VectorStore::new(&config.memory.store_path, config.memory.vector_dimensions));
     let graph_memory = Arc::new(std::sync::Mutex::new(GraphMemory::new()));
 
@@ -335,7 +287,6 @@ async fn cmd_run(prompt: &str, provider_name: &str) -> anyhow::Result<()> {
         Ok(response) => println!("{}", response),
         Err(e) => eprintln!("{} Error: {}", "\u{2717}".red().bold(), e),
     }
-
     Ok(())
 }
 
@@ -362,20 +313,7 @@ async fn cmd_config(action: &ConfigAction) -> anyhow::Result<()> {
                 "default_model" => config.default_model = value.clone(),
                 "workspace" => config.workspace = value.clone(),
                 k if k.starts_with("api_keys.") => {
-                    let provider = k.trim_start_matches("api_keys.");
-                    config.api_keys.insert(provider.to_string(), value.clone());
-                }
-                k if k.starts_with("memory.") => {
-                    let field = k.trim_start_matches("memory.");
-                    match field {
-                        "store_path" => config.memory.store_path = value.clone(),
-                        "vector_dimensions" => {
-                            config.memory.vector_dimensions = value.parse().map_err(|_| {
-                                anyhow::anyhow!("vector_dimensions must be a number")
-                            })?;
-                        }
-                        _ => anyhow::bail!("Unknown config key '{}'", key),
-                    }
+                    config.api_keys.insert(k.trim_start_matches("api_keys.").to_string(), value.clone());
                 }
                 _ => anyhow::bail!("Unknown config key '{}'", key),
             }
@@ -386,8 +324,7 @@ async fn cmd_config(action: &ConfigAction) -> anyhow::Result<()> {
             let mut config = NexusConfig::load();
             match key.as_str() {
                 k if k.starts_with("api_keys.") => {
-                    let provider = k.trim_start_matches("api_keys.");
-                    config.api_keys.insert(provider.to_string(), String::new());
+                    config.api_keys.insert(k.trim_start_matches("api_keys.").to_string(), String::new());
                 }
                 _ => anyhow::bail!("Cannot delete key '{}'", key),
             }
@@ -399,19 +336,16 @@ async fn cmd_config(action: &ConfigAction) -> anyhow::Result<()> {
 }
 
 async fn cmd_doctor() -> anyhow::Result<()> {
-    println!("{} Nexus System Check", "\u{1f99e}".cyan().bold());
-    println!("{}", "─".repeat(50).dimmed());
+    println!("{} Nexus System Check", "== Nexus System Check ==".cyan().bold());
+    println!("{}", "\u{2500}".repeat(50).dimmed());
     println!();
 
     let config = NexusConfig::load();
     let expanded = shellexpand::tilde(&config.workspace).to_string();
-
     let file_count = || -> String {
         let d = std::path::Path::new(&expanded);
         if d.exists() {
-            if let Ok(entries) = std::fs::read_dir(d) {
-                return format!("{}", entries.count());
-            }
+            if let Ok(entries) = std::fs::read_dir(d) { return format!("{}", entries.count()); }
         }
         "0".to_string()
     };
@@ -423,30 +357,41 @@ async fn cmd_doctor() -> anyhow::Result<()> {
         println!("    Run 'nexus init' to create one.");
     }
 
-    let config_path = shellexpand::tilde("~/.nexus/nexus.json").to_string();
-    if std::path::Path::new(&config_path).exists() {
+    let cp = shellexpand::tilde("~/.nexus/nexus.json").to_string();
+    if std::path::Path::new(&cp).exists() {
         println!("  {} Config file found", "\u{2713}".green());
     } else {
         println!("  {} No config file (defaults will be used)", "\u{2139}".blue());
     }
 
-    println!();
-    println!("  {} Providers:", "\u{2192}".blue().bold());
-
-    let openai_key = config.get_api_key("openai");
-    let anthropic_key = config.get_api_key("anthropic");
+    println!("\n  {} Providers:", "\u{2192}".blue().bold());
     let has_ollama = check_ollama().await;
 
-    if openai_key.is_some() && openai_key.as_deref() != Some("") {
-        println!("    {} OpenAI API key configured", "\u{2713}".green());
-    } else {
-        println!("    {} OpenAI \u{2014} set OPENAI_API_KEY or run 'nexus config set api_keys.openai <key>'", "\u{2717}".yellow());
+    for (name, display, _base_url, default_model) in nexus_core::providers::OPENAI_COMPAT_PROVIDERS {
+        let key = config.get_api_key(name);
+        let key_ok = key.is_some() && key.as_deref() != Some("");
+        let env_var = format!("{}_API_KEY", name.to_uppercase());
+        let env_ok = std::env::var(&env_var).is_ok();
+
+        if key_ok || env_ok {
+            println!("    {} {} configured (model: {})", "\u{2713}".green(), display, default_model);
+        } else if std::env::var(&env_var).is_err() {
+            // Silent for unconfigured
+        }
     }
 
-    if anthropic_key.is_some() && anthropic_key.as_deref() != Some("") {
+    let oai_key = config.get_api_key("openai");
+    if oai_key.is_some() && oai_key.as_deref() != Some("") {
+        println!("    {} OpenAI API key configured", "\u{2713}".green());
+    } else if std::env::var("OPENAI_API_KEY").is_ok() {
+        println!("    {} OpenAI via OPENAI_API_KEY env var", "\u{2713}".green());
+    }
+
+    let ant_key = config.get_api_key("anthropic");
+    if ant_key.is_some() && ant_key.as_deref() != Some("") {
         println!("    {} Anthropic API key configured", "\u{2713}".green());
-    } else {
-        println!("    {} Anthropic \u{2014} set ANTHROPIC_API_KEY or run 'nexus config set api_keys.anthropic <key>'", "\u{2717}".yellow());
+    } else if std::env::var("ANTHROPIC_API_KEY").is_ok() {
+        println!("    {} Anthropic via ANTHROPIC_API_KEY env var", "\u{2713}".green());
     }
 
     if has_ollama {
@@ -454,99 +399,84 @@ async fn cmd_doctor() -> anyhow::Result<()> {
     } else {
         println!("    {} Ollama \u{2014} install from https://ollama.ai for free local AI", "\u{2139}".blue());
     }
-
     println!("    {} Demo mode always available (no setup needed)", "\u{2713}".green());
 
     println!();
     println!("  {} CLI version: {}", "\u{2139}".blue(), env!("CARGO_PKG_VERSION"));
     println!("  {} Default provider: {}", "\u{2139}".blue(), config.default_provider.cyan());
 
-    if std::env::var("OPENAI_API_KEY").is_ok() {
-        println!("  {} OPENAI_API_KEY env var detected", "\u{2713}".green());
+    if let Ok(api_keys) = std::env::var("OPENAI_API_KEY") {
+        if !api_keys.is_empty() { println!("  {} OPENAI_API_KEY detected", "\u{2713}".green()); }
     }
-    if std::env::var("ANTHROPIC_API_KEY").is_ok() {
-        println!("  {} ANTHROPIC_API_KEY env var detected", "\u{2713}".green());
-    }
-
-    println!();
-    println!("{} To start chatting: nexus chat", "\u{2192}".blue().bold());
-
+    println!("\n{} To start chatting: nexus chat", "\u{2192}".blue().bold());
     Ok(())
 }
 
 async fn check_ollama() -> bool {
-    if let Ok(resp) = reqwest::get("http://localhost:11434/api/tags").await {
-        resp.status().is_success()
-    } else {
-        false
-    }
+    reqwest::get("http://localhost:11434/api/tags").await.map(|r| r.status().is_success()).unwrap_or(false)
 }
 
 async fn cmd_skill(action: &SkillAction) -> anyhow::Result<()> {
     match action {
         SkillAction::List => {
-            let config = NexusConfig::load();
-            let skills_dir = std::path::Path::new(&config.workspace).join("skills");
-            let mut engine = SkillEngine::new();
-            engine.load_from_directory(&skills_dir.to_string_lossy())?;
+            let engine = SkillEngine::new();
             let skills = engine.list_skills();
             if skills.is_empty() {
                 println!("{} No skills installed.", "\u{2139}".blue());
-                println!("  Use 'nexus skill install <path>' to add a skill.");
             } else {
                 println!("{} Installed skills:", "\u{2726}".cyan().bold());
-                for skill in skills {
-                    println!("  \u{2022} {} - {}", skill.name, skill.description);
-                }
+                for skill in skills { println!("  \u{2022} {} - {}", skill.name, skill.description); }
             }
         }
-        SkillAction::Install { path } => {
-            println!("{} Skill installed from {}", "\u{2713}".green(), path);
-        }
-        SkillAction::Activate { name } => {
-            println!("{} Skill '{}' activated", "\u{2713}".green(), name);
-        }
-        SkillAction::Deactivate { name } => {
-            println!("{} Skill '{}' deactivated", "\u{2713}".green(), name);
-        }
+        SkillAction::Install { path } => println!("{} Skill installed from {}", "\u{2713}".green(), path),
+        SkillAction::Activate { name } => println!("{} Skill '{}' activated", "\u{2713}".green(), name),
+        SkillAction::Deactivate { name } => println!("{} Skill '{}' deactivated", "\u{2713}".green(), name),
     }
     Ok(())
 }
 
-fn create_provider(
-    name: &str,
-    model: Option<&str>,
-    config: &NexusConfig,
-) -> anyhow::Result<Arc<dyn nexus_core::providers::Provider + Send + Sync>> {
-    let provider: Arc<dyn nexus_core::providers::Provider + Send + Sync> = match name {
+fn create_provider(name: &str, model: Option<&str>, config: &NexusConfig) -> anyhow::Result<Arc<dyn nexus_core::providers::Provider + Send + Sync>> {
+    match name {
         "openai" => {
-            let api_key = config.get_api_key("openai");
-            Arc::new(OpenAIProvider::new(ProviderConfig {
-                api_key,
-                model: model.unwrap_or(&config.default_model).to_string(),
-                ..Default::default()
-            }))
+            let api_key = config.get_api_key("openai").or_else(|| std::env::var("OPENAI_API_KEY").ok());
+            Ok(Arc::new(OpenAIProvider::new(ProviderConfig {
+                api_key, model: model.unwrap_or(&config.default_model).to_string(), ..Default::default()
+            })))
         }
         "anthropic" => {
-            let api_key = config.get_api_key("anthropic");
-            Arc::new(nexus_core::providers::anthropic::AnthropicProvider::new(ProviderConfig {
-                api_key,
-                model: model.unwrap_or("claude-3-opus-20240229").to_string(),
-                ..Default::default()
-            }))
+            let api_key = config.get_api_key("anthropic").or_else(|| std::env::var("ANTHROPIC_API_KEY").ok());
+            Ok(Arc::new(nexus_core::providers::anthropic::AnthropicProvider::new(ProviderConfig {
+                api_key, model: model.unwrap_or("claude-3-opus-20240229").to_string(), ..Default::default()
+            })))
         }
         "ollama" => {
-            Arc::new(nexus_core::providers::ollama::OllamaProvider::new(ProviderConfig {
-                model: model.unwrap_or("llama3").to_string(),
-                ..Default::default()
-            }))
+            Ok(Arc::new(nexus_core::providers::ollama::OllamaProvider::new(ProviderConfig {
+                model: model.unwrap_or("llama3").to_string(), ..Default::default()
+            })))
         }
-        "demo" => {
-            Arc::new(DemoProvider::new())
+        "demo" => Ok(Arc::new(DemoProvider::new())),
+        _ => {
+            let compat_list = nexus_core::providers::OPENAI_COMPAT_PROVIDERS;
+            if let Some((_, display, base_url, default_model)) = compat_list.iter().find(|(n, _, _, _)| *n == name) {
+                let api_key = config.get_api_key(name).or_else(|| std::env::var(&format!("{}_API_KEY", name.to_uppercase())).ok());
+                Ok(Arc::new(OpenAICompatProvider::new(
+                    name, display, base_url,
+                    model.unwrap_or(default_model),
+                    api_key,
+                )))
+            } else if name == "openai_compat" {
+                let base_url = config.api_keys.get("base_url").cloned().unwrap_or_else(|| "http://localhost:8000/v1".to_string());
+                let api_key = config.get_api_key("custom");
+                let model = model.unwrap_or("gpt-3.5-turbo");
+                Ok(Arc::new(OpenAICompatProvider::new(
+                    "openai_compat", "Custom OpenAI-compatible", &base_url, model, api_key,
+                )))
+            } else {
+                anyhow::bail!("Unknown provider '{}'. Available providers:\n  demo, openai, anthropic, ollama\n  {}",
+                    name, compat_list.iter().map(|(n, d, _, _)| format!("{} ({})", n, d)).collect::<Vec<_>>().join("\n  "))
+            }
         }
-        _ => anyhow::bail!("Unknown provider '{}'. Available: demo, openai, anthropic, ollama", name),
-    };
-    Ok(provider)
+    }
 }
 
 fn print_help() {
@@ -558,10 +488,10 @@ fn print_help() {
     println!("{} Commands:", "\u{2192}".blue());
     println!("  {} {}  - Initialize a workspace", "nexus init".cyan(), "[--path <dir>]".dimmed());
     println!("  {} {} - Start chat", "nexus chat".cyan(), "[--provider <name>] [--model <name>]".dimmed());
-    println!("  {} {}     - Run a single task", "nexus run".cyan(), "--prompt <text> [--provider <name>]".dimmed());
-    println!("  {}           - View configuration", format!("nexus config show").cyan());
+    println!("  {} {}     - Run a single task", "nexus run".cyan(), "--prompt <text>".dimmed());
+    println!("  {}           - View config", format!("nexus config show").cyan());
     println!("  {} {}  - Set config key", "nexus config set".cyan(), "<key> <value>".dimmed());
     println!("  {}        - List skills", format!("nexus skill list").cyan());
     println!("  {}          - System health check", format!("nexus doctor").cyan());
-    println!("  {}       - Interactive setup wizard", format!("nexus onboard").cyan());
+    println!("  {}       - Guided setup wizard", format!("nexus onboard").cyan());
 }

@@ -55,8 +55,8 @@ cd "$NEXUS_DIR"
 cargo build --release 2>&1 | tail -1
 
 # Install binary
-cp "$NEXUS_DIR/target/release/nexus-cli" "$HOME/.nexus-bin" 2>/dev/null || mkdir -p "$HOME/.nexus-bin"
-cp "$NEXUS_DIR/target/release/nexus-cli" "$HOME/.nexus-bin/nexus"
+cp "$NEXUS_DIR/target/release/nexus" "$HOME/.nexus-bin" 2>/dev/null || mkdir -p "$HOME/.nexus-bin"
+cp "$NEXUS_DIR/target/release/nexus" "$HOME/.nexus-bin/nexus"
 chmod +x "$HOME/.nexus-bin/nexus"
 
 # Add to PATH

@@ -1,0 +1,16 @@
+{
+  "port": 8080,
+  "webchat": { "enabled": true, "path": "/ws" },
+  "discord": { "enabled": false, "bot_token": "" },
+  "telegram": { "enabled": false, "bot_token": "" },
+  "slack": { "enabled": false, "bot_token": "", "app_token": "", "signing_secret": "" },
+  "matrix": { "enabled": false, "homeserver": "", "access_token": "", "room_id": "" },
+  "whatsapp": { "enabled": false, "webhook_path": "/webhook/whatsapp", "verify_token": "", "api_token": "" },
+  "signal": { "enabled": false, "phone_number": "", "signal_api": "http://localhost:8080" },
+  "irc": { "enabled": false, "server": "", "port": 6667, "nick": "nexus-bot", "channel": "", "password": "" },
+  "googlechat": { "enabled": false, "webhook_url": "", "space_id": "" },
+  "msteams": { "enabled": false, "webhook_url": "", "app_id": "", "app_secret": "" },
+  "line": { "enabled": false, "channel_secret": "", "channel_token": "" },
+  "messenger": { "enabled": false, "page_id": "", "access_token": "", "verify_token": "" },
+  "twilio": { "enabled": false, "account_sid": "", "auth_token": "", "from_number": "" }
+}
