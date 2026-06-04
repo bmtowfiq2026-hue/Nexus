@@ -98,13 +98,17 @@ pub fn compute_embedding(text: &str) -> Vec<f32> {
     for i in 0..128 {
         let mut val = 0.0f32;
         let start = (i * bytes.len()) / 128;
-        let end = ((i + 1) * bytes.len()).min(bytes.len()) / 128;
+        let end = if bytes.len() == 0 {
+            0
+        } else {
+            (((i + 1) * bytes.len()) / 128).min(bytes.len())
+        };
+        let count = if end > start { end - start } else { 1 };
 
         for j in start..end {
             val += bytes[j] as f32;
         }
 
-        let count = (end - start).max(1);
         vec.push(val / count as f32);
     }
 

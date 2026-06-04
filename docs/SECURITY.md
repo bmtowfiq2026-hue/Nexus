@@ -20,7 +20,9 @@ Nexus supports multiple ways to provide API keys:
 ```bash
 export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-ant-..."
-export NEXUS_GATEWAY_PORT="8080"
+export GEMINI_API_KEY="AIza..."
+export DEEPSEEK_API_KEY="sk-..."
+export GROQ_API_KEY="gsk_..."
 ```
 
 ### 2. Config File (persistent)
@@ -29,7 +31,9 @@ nexus config set api_keys.openai "sk-..."
 nexus config set api_keys.anthropic "sk-ant-..."
 ```
 
-Keys stored in `~/.nexus/nexus.json` are masked in `config show` output.
+Keys stored in `~/.nexus/nexus.json` are masked in `config show` output. Environment variables take precedence over config file values.
+
+All 24 providers use the `<PROVIDER>_API_KEY` naming convention (e.g. `PERPLEXITY_API_KEY`, `MISTRAL_API_KEY`, `XAI_API_KEY`).
 
 ### 3. Onboarding Wizard
 ```bash
