@@ -1,6 +1,30 @@
 # Changelog
 
-## v0.5.0 (2026-06-04)
+## v0.5.2 (2026-06-04)
+
+### 🎉 New: One-Command Launch
+- `nexus start` — starts agent API + Go gateway + opens browser, all in one command
+- Auto-discovers and builds gateway binary (requires Go) or uses pre-built binary
+- Handles graceful shutdown (Ctrl+C kills both processes)
+
+### 🎉 New: Build-All Scripts
+- `scripts/build-all.sh` / `scripts/build-all.ps1` — build both Rust CLI and Go gateway in one step
+- Install scripts now build the gateway too if Go is present
+
+### 🔧 Improvements
+- `webbrowser` crate added for auto-opening the WebChat UI
+- CI workflow cross-compiles Go gateway for all platforms (Windows/macOS/Linux)
+- Release packages include gateway binary + build-all scripts
+- Print help and doctor output updated with `nexus start`
+
+### 🐛 Fixes
+- Webchat `/` route registered twice causing panic on startup
+- Agent errors swallowed instead of published to `agent:response` bus topic
+- Bus topic changed from per-session `message:<id>` to fixed `message:incoming`
+- Agent API health check uses POST (not GET) since the endpoint only accepts POST
+- Background thread gets its own Tokio runtime for `block_on`
+
+## v0.5.1 (2026-06-04)
 
 ### 🎉 New: 12 Gateway Channels
 Added messaging channel support to the Go gateway — connect Nexus to any platform:
