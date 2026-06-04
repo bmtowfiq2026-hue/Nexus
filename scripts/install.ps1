@@ -45,7 +45,7 @@ if (Get-Command "go" -ErrorAction SilentlyContinue) {
     go build -o "$NexusDir\target\release\nexus-gateway.exe" .
     Write-Host "Gateway built" -ForegroundColor Green
 } else {
-    Write-Host "Go not found. Gateway not built (install Go from https://go.dev/dl for `nexus start`)." -ForegroundColor Yellow
+    Write-Host "Go not found. Gateway not built (install Go from https://go.dev/dl for 'nexus start')." -ForegroundColor Yellow
 }
 
 # Install binaries

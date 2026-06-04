@@ -33,8 +33,8 @@ if command -v go >/dev/null 2>&1; then
     go build -o "$ROOT_DIR/target/release/nexus-gateway" .
     echo "  ${GREEN}gateway binary:${NC} $ROOT_DIR/target/release/nexus-gateway"
 else
-    echo "  ${YELLOW}Go not found. Installing...${NC}"
-    echo "  Install Go manually from https://go.dev/dl, then run:"
+echo "  ${YELLOW}Go not found.${NC}"
+  echo "  Install Go from https://go.dev/dl, then run:"
     echo "    cd gateway && go build -o ../target/release/nexus-gateway ."
     exit 1
 fi

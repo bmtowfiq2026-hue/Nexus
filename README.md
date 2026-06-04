@@ -128,7 +128,7 @@ cd Nexus
 docker compose up nexus
 ```
 
-### Option 3: Install via Cargo (binary only)
+### Option 3: Install via Cargo (binary only — coming soon)
 
 ```bash
 cargo install nexus
@@ -300,6 +300,8 @@ See [SECURITY.md](docs/SECURITY.md) for details.
 | `nexus onboard` | Interactive setup wizard |
 | `nexus chat [--provider] [--model]` | Start interactive chat (default: demo) |
 | `nexus run --prompt <text>` | Execute a single task |
+| `nexus start` | Launch agent API server + WebChat UI |
+| `nexus serve` | Start agent API service (no UI) |
 | `nexus config show` | View configuration (keys masked) |
 | `nexus config set <key> <value>` | Set configuration (e.g. `api_keys.openai sk-...`) |
 | `nexus config delete <key>` | Clear a configuration key |

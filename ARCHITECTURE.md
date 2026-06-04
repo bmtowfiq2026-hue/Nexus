@@ -43,9 +43,10 @@ The core library (`libnexus_core`) contains all agent intelligence:
 - `SkillExtractor` — mines successful trajectories for skill candidates
 
 ### Providers (`core/src/providers/`)
-- `OpenAI` — GPT-4o/GPT-4o-mini via REST
-- `Anthropic` — Claude via REST
-- `Ollama` — Local models via REST
+- **Primary:** `OpenAI` (GPT-4o), `Anthropic` (Claude), `Demo` (no-key mode)
+- **Local:** `Ollama`, `LM Studio`, `LocalAI`, `oobabooga`
+- **Compatible (OpenAI API):** `Google Gemini`, `DeepSeek`, `Groq`, `Together AI`, `Fireworks AI`, `OpenRouter`, `Perplexity`, `Mistral AI`, `Cohere`, `AI21 Labs`, `Replicate`, `HuggingFace`, `Cerebras`, `xAI (Grok)`, `DeepInfra`, `SambaNova`, `Anyscale`
+- Set via `NEXUS_PROVIDER` env var or `--provider` flag
 
 ### Checkpoint (`core/src/checkpoint/`)
 - `CheckpointManager` — snapshot/restore agent state
@@ -63,11 +64,20 @@ The core library (`libnexus_core`) contains all agent intelligence:
 
 The gateway (`gateway/`) handles multi-protocol messaging:
 
-### Channels
-- **Discord** — bot with message create/update events, slash commands (WIP)
+### Channels (13 supported)
+- **WebChat** — WebSocket-based HTML chat UI + HTTP REST API (built-in)
+- **Discord** — bot with message events, slash commands
 - **Telegram** — bot with message handler, inline keyboards
 - **Slack** — RTM socket mode + Web API posting
-- **WebChat** — WebSocket-based HTML chat UI + HTTP REST API
+- **Matrix** — Client-Server API via webhook wrapper
+- **WhatsApp** — Webhook-based (Meta API)
+- **Signal** — Webhook-based (Signal Messenger REST API)
+- **IRC** — Native TCP implementation (NICK/USER/JOIN/PING-PONG)
+- **Google Chat** — Incoming webhook
+- **MSTeams** — Incoming webhook
+- **LINE** — Webhook-based (LINE Messaging API)
+- **Messenger** — Webhook-based (Facebook Messenger API)
+- **Twilio** — Webhook-based (Twilio SMS/WhatsApp API)
 
 ### Message Bus
 In-process publish/subscribe with named topics. Pending: NATS JetStream for distributed mode.
@@ -123,7 +133,7 @@ nexus/
 │       ├── memory/    (store, fts, vector, graph, summarizer)
 │       ├── skills/    (engine, parser, refiner)
 │       ├── tools/     (registry, builtin)
-│       ├── providers/ (openai, anthropic, ollama)
+│       ├── providers/ (openai, anthropic, ollama, demo, openai_compat)
 │       ├── trajectory/(recorder, extractor)
 │       ├── checkpoint/(snapshot, rollback, diff)
 │       ├── identity/  (did, keys)
@@ -135,7 +145,7 @@ nexus/
 │   ├── main.go
 │   ├── gateway.json
 │   └── internal/
-│       ├── channel/    (discord, telegram, slack, webchat)
+│       ├── channel/    (13 channels: webchat, discord, telegram, slack, matrix, whatsapp, signal, irc, googlechat, msteams, line, messenger, twilio)
 │       ├── bus/        (pub/sub)
 │       └── session/    (turn history)
 ├── docs/

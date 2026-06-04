@@ -10,8 +10,8 @@
 ## Option 1: Build from Source (Recommended)
 
 ```bash
-git clone https://github.com/nexus/nexus.git
-cd nexus
+git clone https://github.com/bmtowfiq2026-hue/Nexus.git
+cd Nexus
 cargo build --release
 
 # Verify

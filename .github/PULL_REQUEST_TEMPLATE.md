@@ -1,14 +1,25 @@
-## Thank you for contributing!
+## Summary
 
-Please describe your changes and any context reviewers should know.
+<!-- One sentence summary of what this PR does. -->
 
-### Checklist
+## Changes
 
-- [ ] Code compiles (`cargo build`)
+<!-- List the key changes. -->
+
+- 
+- 
+
+## Checklist
+
+- [ ] Code compiles (`cargo build` / `go build`)
 - [ ] Tests pass (`cargo test`)
-- [ ] Formatting applied (`cargo fmt`)
-- [ ] No new clippy warnings (`cargo clippy`)
+- [ ] Rust formatted (`cargo fmt`)
+- [ ] Go formatted (`gofmt -s -w .`)
+- [ ] No new clippy warnings (`cargo clippy -- -D warnings`)
+- [ ] Go vet clean (`cd gateway && go vet ./...`)
+- [ ] Documentation updated (if public API changed)
+- [ ] PR is focused on a single change (split into multiple PRs if not)
 
-### Related issues
+## Related Issues
 
-Fixes #(issue)
+<!-- Link any related issues: Fixes #..., Closes #... -->
