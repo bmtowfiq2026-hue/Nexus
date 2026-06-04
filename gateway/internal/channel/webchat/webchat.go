@@ -121,7 +121,7 @@ func (w *WebChatChannel) handleREST(rw http.ResponseWriter, r *http.Request) {
 	if !ok {
 		sess = w.session.GetOrCreate("webchat", msg.SessionID)
 	}
-	w.bus.PublishAsync("message:"+sess.ID, bus.Message{
+	w.bus.PublishAsync("message:incoming", bus.Message{
 		Channel: "webchat", UserID: sess.UserID, SessionID: sess.ID, Content: msg.Content,
 	})
 	json.NewEncoder(rw).Encode(map[string]string{"session_id": sess.ID, "status": "received"})
@@ -176,7 +176,7 @@ func (w *WebChatChannel) readPump(client *wsClient, sess *session.Session) {
 			client.send <- []byte(`{"type":"pong"}`)
 			continue
 		}
-		w.bus.PublishAsync("message:"+sess.ID, bus.Message{
+		w.bus.PublishAsync("message:incoming", bus.Message{
 			Channel: "webchat", UserID: client.userID,
 			SessionID: sess.ID, Content: incoming.Content,
 		})

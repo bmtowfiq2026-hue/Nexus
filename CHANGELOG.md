@@ -39,6 +39,11 @@ Embedded HTML/CSS/JS chat interface served by the gateway at `/`:
 ### 🎉 New: Onboard Setup Wizard
 Interactive `nexus onboard` command — guides through provider selection and API key setup.
 
+### 🎉 New: One-Command Launch
+- `nexus start` — starts agent API + Go gateway + opens browser, all in one command
+- Auto-discovers and builds gateway binary (requires Go) or uses pre-built binary
+- Handles graceful shutdown (Ctrl+C kills both processes)
+
 ### 🎉 New: Logo & Website
 - Professional SVG logos (neural network hexagon + "N") at `docs/assets/`
 - Pure static marketing site at `https://bmtowfiq2026-hue.github.io/nexus-website/`
@@ -49,12 +54,18 @@ Interactive `nexus onboard` command — guides through provider selection and AP
 - `nexus doctor` checks all configured providers
 - Gateway JSON config restructured with per-channel config objects
 - Install scripts updated for new binary name
+- New `scripts/build-all.ps1` / `scripts/build-all.sh` — build both Rust + Go in one step
+- Install scripts (`install.ps1`, `install.sh`) now also build the Go gateway if Go is present
+- CI workflow cross-compiles Go gateway for all platforms (Windows/macOS/Linux)
 
 ### 🐛 Fixes
 - Vercel 404 resolved by replacing Next.js with pure static HTML
 
 ### 📦 Package
-- Windows x86_64 release package: `nexus.exe` + `nexus-gateway.exe` + `gateway.json` + install script
+- Windows x86_64 release package: `nexus.exe` + `nexus-gateway.exe` + `gateway.json` + install scripts
+- Linux release package: `nexus` + `nexus-gateway` + `gateway.json` + install scripts
+- macOS release package: `nexus` + `nexus-gateway` + `gateway.json` + install scripts
+- CI auto-builds all three platforms on tag push (`v*`)
 
 ## v0.4.0 (2026-05-??)
 

@@ -54,10 +54,25 @@ echo "${YELLOW}Building Nexus (this may take a few minutes)...${NC}"
 cd "$NEXUS_DIR"
 cargo build --release 2>&1 | tail -1
 
-# Install binary
-cp "$NEXUS_DIR/target/release/nexus" "$HOME/.nexus-bin" 2>/dev/null || mkdir -p "$HOME/.nexus-bin"
+# Build Go gateway (if Go is installed)
+if command -v go >/dev/null 2>&1; then
+  echo "${YELLOW}Building gateway...${NC}"
+  cd "$NEXUS_DIR/gateway"
+  go build -o "$NEXUS_DIR/target/release/nexus-gateway" .
+  echo "${GREEN}Gateway built${NC}"
+  cd "$NEXUS_DIR"
+else
+  echo "${YELLOW}Go not found. Gateway not built (install Go from https://go.dev/dl for 'nexus start').${NC}"
+fi
+
+# Install binaries
+mkdir -p "$HOME/.nexus-bin"
 cp "$NEXUS_DIR/target/release/nexus" "$HOME/.nexus-bin/nexus"
 chmod +x "$HOME/.nexus-bin/nexus"
+if [ -f "$NEXUS_DIR/target/release/nexus-gateway" ]; then
+  cp "$NEXUS_DIR/target/release/nexus-gateway" "$HOME/.nexus-bin/nexus-gateway"
+  chmod +x "$HOME/.nexus-bin/nexus-gateway"
+fi
 
 # Add to PATH
 SHELL_PROFILE=""
@@ -89,9 +104,10 @@ echo ""
 echo "${CYAN}${BOLD}Nexus installed!${NC}"
 echo ""
 echo "  ${GREEN}nexus chat${NC}        Start chatting (demo mode)"
+echo "  ${GREEN}nexus start${NC}       Launch agent API + WebChat UI"
 echo "  ${GREEN}nexus doctor${NC}      Check system health"
 echo "  ${GREEN}nexus onboard${NC}     Guided setup wizard"
 echo ""
 echo "  ${YELLOW}Quick start:${NC}"
 echo "    ${GREEN}nexus chat${NC}"
-echo ""
+echo "    ${GREEN}nexus start${NC} (opens http://localhost:8080)"

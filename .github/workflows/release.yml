@@ -33,13 +33,14 @@ jobs:
       - name: Package Linux
         run: |
           mkdir -p dist/nexus-${{ github.ref_name }}-linux-x86_64
-          cp target/release/nexus target/release/nexus-gateway gateway/gateway.json dist/nexus-${{ github.ref_name }}-linux-x86_64/
+          cp target/release/nexus target/release/nexus-gateway gateway/gateway.json scripts/build-all.sh scripts/install.sh dist/nexus-${{ github.ref_name }}-linux-x86_64/
           cd dist && tar czf nexus-${{ github.ref_name }}-linux-x86_64.tar.gz nexus-${{ github.ref_name }}-linux-x86_64/
 
       - name: Cross-compile Windows
         run: |
           rustup target add x86_64-pc-windows-gnu
           cargo build --release --target x86_64-pc-windows-gnu
+          GOOS=windows GOARCH=amd64 go build -o target/x86_64-pc-windows-gnu/release/nexus-gateway.exe ./gateway/
         continue-on-error: true
 
       - name: Package Windows
@@ -47,7 +48,8 @@ jobs:
           if [ -f target/x86_64-pc-windows-gnu/release/nexus.exe ]; then
             mkdir -p dist/nexus-${{ github.ref_name }}-windows-x86_64
             cp target/x86_64-pc-windows-gnu/release/nexus.exe dist/nexus-${{ github.ref_name }}-windows-x86_64/
-            cp gateway/gateway.json scripts/install.ps1 dist/nexus-${{ github.ref_name }}-windows-x86_64/
+            cp target/x86_64-pc-windows-gnu/release/nexus-gateway.exe dist/nexus-${{ github.ref_name }}-windows-x86_64/ 2>/dev/null || true
+            cp gateway/gateway.json scripts/install.ps1 scripts/build-all.ps1 dist/nexus-${{ github.ref_name }}-windows-x86_64/
             cd dist && zip -r nexus-${{ github.ref_name }}-windows-x86_64.zip nexus-${{ github.ref_name }}-windows-x86_64/
           fi
 
@@ -55,6 +57,7 @@ jobs:
         run: |
           rustup target add x86_64-apple-darwin
           cargo build --release --target x86_64-apple-darwin
+          GOOS=darwin GOARCH=amd64 go build -o target/x86_64-apple-darwin/release/nexus-gateway ./gateway/
         continue-on-error: true
 
       - name: Package macOS
@@ -62,7 +65,8 @@ jobs:
           if [ -f target/x86_64-apple-darwin/release/nexus ]; then
             mkdir -p dist/nexus-${{ github.ref_name }}-macos-x86_64
             cp target/x86_64-apple-darwin/release/nexus dist/nexus-${{ github.ref_name }}-macos-x86_64/
-            cp gateway/gateway.json scripts/install.sh dist/nexus-${{ github.ref_name }}-macos-x86_64/
+            cp target/x86_64-apple-darwin/release/nexus-gateway dist/nexus-${{ github.ref_name }}-macos-x86_64/ 2>/dev/null || true
+            cp gateway/gateway.json scripts/install.sh scripts/build-all.sh dist/nexus-${{ github.ref_name }}-macos-x86_64/
             cd dist && tar czf nexus-${{ github.ref_name }}-macos-x86_64.tar.gz nexus-${{ github.ref_name }}-macos-x86_64/
           fi
 

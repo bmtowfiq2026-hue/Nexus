@@ -12,6 +12,7 @@ use nexus_core::providers::ProviderConfig;
 use nexus_core::skills::SkillEngine;
 use nexus_core::tools::ToolDispatcher;
 use nexus_core::NexusConfig;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing_subscriber::EnvFilter;
 
@@ -54,6 +55,22 @@ enum Commands {
     },
     Doctor,
     Onboard,
+    Serve {
+        #[arg(short, long, default_value = "demo")]
+        provider: String,
+        #[arg(short, long, default_value_t = 9876)]
+        port: u16,
+    },
+    Start {
+        #[arg(short, long, default_value = "demo")]
+        provider: String,
+        #[arg(short, long, default_value_t = 9876)]
+        port: u16,
+        #[arg(long, default_value_t = 8080)]
+        gateway_port: u16,
+        #[arg(long)]
+        no_browser: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -90,6 +107,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Skill { action } => cmd_skill(action).await,
         Commands::Doctor => cmd_doctor().await,
         Commands::Onboard => cmd_onboard(None).await,
+        Commands::Serve { provider, port } => cmd_serve(provider, *port).await,
+        Commands::Start { provider, port, gateway_port, no_browser } => cmd_start(provider, *port, *gateway_port, *no_browser).await,
     }
 }
 
@@ -211,6 +230,280 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
 
     config.save()?;
     println!("\n{} Setup complete! Run 'nexus chat' to start.", "\u{2713}".green().bold());
+    Ok(())
+}
+
+async fn cmd_serve(provider_name: &str, port: u16) -> anyhow::Result<()> {
+    let config = NexusConfig::load();
+    let provider = create_provider(provider_name, None, &config)?;
+    let mut tools = ToolDispatcher::new();
+    tools.register_builtins();
+    let skills = SkillEngine::new();
+    let memory = MemoryStore::new(&config.memory.store_path);
+    let vector_store = Arc::new(VectorStore::new(&config.memory.store_path, config.memory.vector_dimensions));
+    let graph_memory = Arc::new(std::sync::Mutex::new(GraphMemory::new()));
+
+    let agent = Arc::new(tokio::sync::Mutex::new(AgentLoop::new(
+        config, provider, Arc::new(tools), Arc::new(skills),
+        Arc::new(std::sync::Mutex::new(memory)), vector_store, graph_memory,
+    )));
+
+    let sessions: Arc<tokio::sync::Mutex<HashMap<String, Session>>> = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
+
+    let server = tiny_http::Server::http(format!("0.0.0.0:{}", port))
+        .map_err(|e| anyhow::anyhow!("Failed to start server on port {}: {}", port, e))?;
+
+    println!("{} Nexus agent API running on http://0.0.0.0:{}", "\u{2726}".cyan().bold(), port);
+    println!("{} POST /api/agent {{ \"session_id\": \"...\", \"message\": \"...\" }}", "\u{2192}".blue());
+    println!("{} Press Ctrl+C to stop", "\u{2139}".blue().dimmed());
+
+    let handle = tokio::runtime::Handle::current();
+
+    for mut request in server.incoming_requests() {
+        let agent = agent.clone();
+        let sessions = sessions.clone();
+        let handle = handle.clone();
+
+        std::thread::spawn(move || {
+            let (status, body) = handle.block_on(async {
+                let url = request.url();
+                let method = request.method();
+
+                if method.as_str() != "POST" || url != "/api/agent" {
+                    return (404, r#"{"error":"Not found"}"#.to_string());
+                }
+
+                let mut body_str = String::new();
+                if request.as_reader().read_to_string(&mut body_str).is_err() {
+                    return (400, r#"{"error":"Failed to read request body"}"#.to_string());
+                }
+
+                let msg: serde_json::Value = match serde_json::from_str(&body_str) {
+                    Ok(v) => v,
+                    Err(_) => return (400, r#"{"error":"Invalid JSON"}"#.to_string()),
+                };
+
+                let session_id = msg.get("session_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("default")
+                    .to_string();
+                let message = match msg.get("message").and_then(|v| v.as_str()) {
+                    Some(m) => m.to_string(),
+                    None => return (400, r#"{"error":"Missing 'message' field"}"#.to_string()),
+                };
+
+                let mut sess_map = sessions.lock().await;
+                let session = sess_map.entry(session_id.clone()).or_insert_with(|| {
+                    Session::new(session_id, "gateway".to_string(), "web".to_string())
+                });
+
+                match agent.lock().await.run_turn(session, &message).await {
+                    Ok(response) => {
+                        let json = serde_json::json!({"response": response});
+                        (200, json.to_string())
+                    }
+                    Err(e) => {
+                        let json = serde_json::json!({"error": e.to_string()});
+                        (500, json.to_string())
+                    }
+                }
+            });
+
+            let resp = tiny_http::Response::from_string(body)
+                .with_header(
+                    tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+                        .unwrap()
+                )
+                .with_status_code(status);
+            let _ = request.respond(resp);
+        });
+    }
+
+    Ok(())
+}
+
+use std::path::PathBuf;
+
+fn gateway_bin_name() -> &'static str {
+    if cfg!(windows) { "nexus-gateway.exe" } else { "nexus-gateway" }
+}
+
+fn find_or_build_gateway() -> anyhow::Result<PathBuf> {
+    let exe = std::env::current_exe().map_err(|_| anyhow::anyhow!("Cannot determine binary path"))?;
+    let exe_dir = exe.parent().ok_or_else(|| anyhow::anyhow!("Cannot determine binary directory"))?;
+    let bin_name = gateway_bin_name();
+
+    let check = |p: PathBuf| { if p.exists() { Some(p) } else { None } };
+
+    // 1. Next to current binary
+    if let Some(p) = check(exe_dir.join(bin_name)) { return Ok(p); }
+    // 2. In gateway/ subdirectory next to binary
+    if let Some(p) = check(exe_dir.join("gateway").join(bin_name)) { return Ok(p); }
+
+    // 3. Find gateway source and build it
+    let lookup_dirs: Vec<PathBuf> = {
+        let mut dirs = Vec::new();
+        // Try project structure: <root>/target/release/nexus.exe -> <root>/gateway/
+        if let Some(parent) = exe_dir.parent().and_then(|p| p.parent()) {
+            dirs.push(parent.join("gateway"));
+        }
+        // Try next to binary: <root>/nexus.exe -> <root>/gateway/
+        dirs.push(exe_dir.join("gateway"));
+        // Try installed source location
+        if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+            dirs.push(PathBuf::from(home).join(".nexus-repo").join("gateway"));
+        }
+        dirs
+    };
+
+    for src_dir in &lookup_dirs {
+        if src_dir.join("main.go").exists() {
+            println!("  {} Building gateway from {}...", "\u{2699}".yellow(), src_dir.display());
+            let out_path = exe_dir.join(bin_name);
+            let status = std::process::Command::new("go")
+                .args(["build", "-o", &out_path.to_string_lossy(), "."])
+                .current_dir(src_dir)
+                .status()
+                .map_err(|e| anyhow::anyhow!("Failed to run go build: {}", e))?;
+            if status.success() && out_path.exists() {
+                println!("  {} Gateway built: {}", "\u{2713}".green(), out_path.display());
+                return Ok(out_path);
+            }
+            anyhow::bail!("Gateway build failed. Ensure Go is installed: https://go.dev/dl");
+        }
+    }
+
+    anyhow::bail!(
+        "Gateway binary not found. Build it:\n  cd gateway && go build -o {} .\nor run with Go installed and it will be built automatically.",
+        bin_name
+    )
+}
+
+async fn wait_for_url(url: &str, max_secs: u64) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    for _ in 0..max_secs {
+        let ok = if url.contains("/api/agent") {
+            client.post(url).json(&serde_json::json!({"session_id":"health","message":"ping"})).send().await
+                .map(|r| r.status().is_success()).unwrap_or(false)
+        } else {
+            client.get(url).send().await
+                .map(|r| r.status().is_success()).unwrap_or(false)
+        };
+        if ok { return Ok(()); }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    anyhow::bail!("Timed out waiting for {}", url)
+}
+
+async fn cmd_start(provider_name: &str, port: u16, gateway_port: u16, no_browser: bool) -> anyhow::Result<()> {
+    // 1. Find or build gateway
+    let gateway_bin = find_or_build_gateway()?;
+    println!("{} Gateway binary: {}", "\u{2713}".green(), gateway_bin.display());
+
+    // 2. Start agent API on background thread
+    let config = NexusConfig::load();
+    let provider = create_provider(provider_name, None, &config)?;
+    let mut tools = ToolDispatcher::new();
+    tools.register_builtins();
+    let skills = SkillEngine::new();
+    let memory = MemoryStore::new(&config.memory.store_path);
+    let vector_store = Arc::new(VectorStore::new(&config.memory.store_path, config.memory.vector_dimensions));
+    let graph_memory = Arc::new(std::sync::Mutex::new(GraphMemory::new()));
+
+    let agent = Arc::new(tokio::sync::Mutex::new(AgentLoop::new(
+        config, provider, Arc::new(tools), Arc::new(skills),
+        Arc::new(std::sync::Mutex::new(memory)), vector_store, graph_memory,
+    )));
+    let sessions: Arc<tokio::sync::Mutex<HashMap<String, Session>>> = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
+
+    let server = tiny_http::Server::http(format!("0.0.0.0:{}", port))
+        .map_err(|e| anyhow::anyhow!("Failed to start server on port {}: {}", port, e))?;
+
+    let _ = std::thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create agent runtime");
+        for mut request in server.incoming_requests() {
+            let agent = agent.clone();
+            let sessions = sessions.clone();
+            let handle = rt.handle().clone();
+            std::thread::spawn(move || {
+                let (status, body) = handle.block_on(async {
+                    let url = request.url();
+                    let method = request.method();
+                    if method.as_str() != "POST" || url != "/api/agent" {
+                        return (404, r#"{"error":"Not found"}"#.to_string());
+                    }
+                    let mut body_str = String::new();
+                    if request.as_reader().read_to_string(&mut body_str).is_err() {
+                        return (400, r#"{"error":"Failed to read request body"}"#.to_string());
+                    }
+                    let msg: serde_json::Value = match serde_json::from_str(&body_str) {
+                        Ok(v) => v,
+                        Err(_) => return (400, r#"{"error":"Invalid JSON"}"#.to_string()),
+                    };
+                    let session_id = msg.get("session_id").and_then(|v| v.as_str()).unwrap_or("default").to_string();
+                    let message = match msg.get("message").and_then(|v| v.as_str()) {
+                        Some(m) => m.to_string(),
+                        None => return (400, r#"{"error":"Missing 'message' field"}"#.to_string()),
+                    };
+                    let mut sess_map = sessions.lock().await;
+                    let session = sess_map.entry(session_id.clone()).or_insert_with(|| {
+                        Session::new(session_id, "gateway".to_string(), "web".to_string())
+                    });
+                    match agent.lock().await.run_turn(session, &message).await {
+                        Ok(response) => (200, serde_json::json!({"response": response}).to_string()),
+                        Err(e) => (500, serde_json::json!({"error": e.to_string()}).to_string()),
+                    }
+                });
+                let resp = tiny_http::Response::from_string(body)
+                    .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap())
+                    .with_status_code(status);
+                let _ = request.respond(resp);
+            });
+        }
+    });
+
+    // 3. Wait for agent API
+    let agent_url = format!("http://localhost:{}/api/agent", port);
+    wait_for_url(&agent_url, 5).await?;
+    println!("  {} Agent API ready at {}", "\u{2713}".green(), agent_url.cyan());
+
+    // 4. Start gateway as child process
+    let gw_exe = gateway_bin.to_string_lossy().to_string();
+    let mut gw_child = std::process::Command::new(&gw_exe)
+        .env("NEXUS_AGENT_ENDPOINT", format!("http://localhost:{}", port))
+        .spawn()
+        .map_err(|e| anyhow::anyhow!("Failed to start gateway: {}", e))?;
+    println!("  {} Gateway started (PID: {})", "\u{2713}".green(), gw_child.id());
+
+    // 5. Wait for gateway
+    let gw_url = format!("http://localhost:{}/health", gateway_port);
+    match wait_for_url(&gw_url, 15).await {
+        Ok(_) => println!("  {} Gateway ready at http://localhost:{}", "\u{2713}".green(), gateway_port),
+        Err(e) => {
+            let _ = gw_child.kill();
+            anyhow::bail!("{}", e);
+        }
+    }
+
+    // 6. Open browser
+    let ui_url = format!("http://localhost:{}", gateway_port);
+    if !no_browser {
+        println!("  {} Opening browser...", "\u{2192}".blue());
+        let _ = webbrowser::open(&ui_url);
+    }
+
+    println!("\n{} Nexus is running!", "\u{2726}".cyan().bold());
+    println!("  WebChat UI: {}", ui_url.cyan());
+    println!("  Press Ctrl+C to stop\n");
+
+    // 7. Wait for Ctrl+C
+    tokio::signal::ctrl_c().await?;
+
+    // 8. Cleanup
+    println!("\n{} Shutting down...", "\u{2139}".blue());
+    let _ = gw_child.kill();
+    let _ = gw_child.wait();
+    println!("{} Done.", "\u{2713}".green());
     Ok(())
 }
 
@@ -409,6 +702,7 @@ async fn cmd_doctor() -> anyhow::Result<()> {
         if !api_keys.is_empty() { println!("  {} OPENAI_API_KEY detected", "\u{2713}".green()); }
     }
     println!("\n{} To start chatting: nexus chat", "\u{2192}".blue().bold());
+    println!("{} To start web UI:  nexus start", "\u{2192}".blue().bold());
     Ok(())
 }
 
@@ -487,8 +781,10 @@ fn print_help() {
     println!();
     println!("{} Commands:", "\u{2192}".blue());
     println!("  {} {}  - Initialize a workspace", "nexus init".cyan(), "[--path <dir>]".dimmed());
-    println!("  {} {} - Start chat", "nexus chat".cyan(), "[--provider <name>] [--model <name>]".dimmed());
+    println!("  {} {} - Start interactive chat", "nexus chat".cyan(), "[--provider <name>] [--model <name>]".dimmed());
     println!("  {} {}     - Run a single task", "nexus run".cyan(), "--prompt <text>".dimmed());
+    println!("  {} {} - Start agent API + WebChat UI (all-in-one)", "nexus start".cyan(), "[--port <n>] [--provider <name>]".dimmed());
+    println!("  {} {} - Start agent API server only (for gateway)", "nexus serve".cyan(), "[--port <n>] [--provider <name>]".dimmed());
     println!("  {}           - View config", format!("nexus config show").cyan());
     println!("  {} {}  - Set config key", "nexus config set".cyan(), "<key> <value>".dimmed());
     println!("  {}        - List skills", format!("nexus skill list").cyan());

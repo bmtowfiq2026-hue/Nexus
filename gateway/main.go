@@ -58,8 +58,22 @@ func main() {
 	registerMessenger(registry, cfg.Messenger)
 	registerTwilio(registry, cfg.Twilio)
 
+	// Agent bridge: forwards incoming messages to the agent and publishes responses
+	// Agent bridge: forwards incoming messages to the agent and publishes responses
+	messageBus.Subscribe("message:incoming", func(msg bus.Message) (bus.Response, error) {
+		log.Printf("[bus] Forwarding to agent (session %s): %.60s", msg.SessionID, msg.Content)
+		respContent, err := forwardToAgent(msg.SessionID, msg.Content)
+		if err != nil {
+			log.Printf("[bus] Agent error: %v", err)
+			respContent = "Error: " + err.Error()
+		}
+		messageBus.Publish("agent:response", bus.Message{
+			Channel: "agent", SessionID: msg.SessionID, Content: respContent,
+		})
+		return bus.Response{SessionID: msg.SessionID, Content: respContent}, nil
+	})
+
 	messageBus.Subscribe("agent:response", func(msg bus.Message) (bus.Response, error) {
-		log.Printf("[bus] Agent response for session %s: %.80s", msg.SessionID, msg.Content)
 		return bus.Response{SessionID: msg.SessionID, Content: msg.Content}, nil
 	})
 
@@ -123,7 +137,7 @@ func main() {
 		}
 	}
 
-	// Register webhook routes for channels that support them
+	// Register webhook routes for channels that support them (skip webchat — already registered above)
 	registerChannelWebhooks(registry, mux)
 
 	server := &http.Server{
@@ -157,6 +171,7 @@ func main() {
 
 func registerChannelWebhooks(registry *channel.Registry, mux *http.ServeMux) {
 	for _, name := range registry.List() {
+		if name == "webchat" { continue } // webchat registers its own routes
 		ch, _ := registry.Get(name)
 		if wh, ok := ch.(webhookRegistrar); ok {
 			wh.RegisterRoutes(mux)

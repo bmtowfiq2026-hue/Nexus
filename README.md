@@ -1,4 +1,6 @@
-<h1 align="center">Nexus</h1>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/bmtowfiq2026-hue/Nexus/main/logo.svg" alt="Nexus" width="400">
+</p>
 
 <p align="center">
   <b>Autonomous AI Agent Platform — learns, remembers, and grows.</b>
@@ -44,8 +46,11 @@ Clone, build, and start chatting with a single pair of commands:
 The install script handles everything: installs Rust (if missing), builds the binary, adds it to your PATH, and runs `nexus init`. Then just run:
 
 ```bash
-nexus chat
+nexus chat              # CLI chat (demo mode, no API keys)
+nexus start             # WebChat UI (auto-opens http://localhost:8080)
 ```
+
+**First time?** Both work immediately — no API keys, no accounts, no cloud signup.
 
 ```
 ✦ Nexus Agent ready (demo mode). Type '/quit' to exit.
@@ -91,6 +96,7 @@ REM 3. Initialize workspace
 
 REM 4. Start chatting!
 .\target\release\nexus chat
+.\target\release\nexus start    (opens WebChat UI at http://localhost:8080)
 ```
 
 #### macOS / Linux
@@ -109,6 +115,7 @@ cargo build --release
 
 # 4. Start chatting!
 ./target/release/nexus chat
+./target/release/nexus start    (opens WebChat UI at http://localhost:8080)
 ```
 
 ### Option 2: Docker (no Rust needed)

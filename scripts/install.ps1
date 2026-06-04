@@ -38,10 +38,23 @@ Write-Host "Building Nexus (this may take a few minutes)..." -ForegroundColor Ye
 Set-Location -Path $NexusDir
 cargo build --release
 
-# Install binary
+# Build Go gateway (if Go is installed)
+if (Get-Command "go" -ErrorAction SilentlyContinue) {
+    Write-Host "Building gateway..." -ForegroundColor Yellow
+    Set-Location -Path "$NexusDir\gateway"
+    go build -o "$NexusDir\target\release\nexus-gateway.exe" .
+    Write-Host "Gateway built" -ForegroundColor Green
+} else {
+    Write-Host "Go not found. Gateway not built (install Go from https://go.dev/dl for `nexus start`)." -ForegroundColor Yellow
+}
+
+# Install binaries
 $BinDir = "$env:USERPROFILE\.nexus-bin"
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 Copy-Item "$NexusDir\target\release\nexus.exe" "$BinDir\nexus.exe" -Force
+if (Test-Path "$NexusDir\target\release\nexus-gateway.exe") {
+    Copy-Item "$NexusDir\target\release\nexus-gateway.exe" "$BinDir\nexus-gateway.exe" -Force
+}
 
 # Add to PATH
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -62,11 +75,12 @@ $Host.UI.RawUI.ForegroundColor = "Cyan"
 Write-Host "Nexus installed!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  nexus chat        Start chatting (demo mode)" -ForegroundColor Green
+Write-Host "  nexus start       Launch agent API + WebChat UI" -ForegroundColor Green
 Write-Host "  nexus doctor      Check system health" -ForegroundColor Green
 Write-Host "  nexus onboard     Guided setup wizard" -ForegroundColor Green
 Write-Host ""
 Write-Host "Quick start:" -ForegroundColor Yellow
 Write-Host "  nexus chat" -ForegroundColor Green
-Write-Host ""
+Write-Host "  nexus start (opens http://localhost:8080)" -ForegroundColor Green
 
 $Host.UI.RawUI.ForegroundColor = "White"
