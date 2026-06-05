@@ -52,7 +52,7 @@ fi
 # Build
 echo "${YELLOW}Building Nexus (this may take a few minutes)...${NC}"
 cd "$NEXUS_DIR"
-cargo build --release 2>&1 | tail -1
+cargo build --release
 
 # Build Go gateway (if Go is installed)
 if command -v go >/dev/null 2>&1; then
