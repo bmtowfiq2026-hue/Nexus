@@ -69,18 +69,25 @@ if ($UserPath -notlike "*$BinDir*") {
 # Init workspace
 Write-Host ""
 nexus init
-Write-Host ""
 
+Write-Host ""
 $Host.UI.RawUI.ForegroundColor = "Cyan"
 Write-Host "Nexus installed!" -ForegroundColor Green
 Write-Host ""
+Write-Host "  nexus doctor      Check system health" -ForegroundColor Green
+Write-Host "  nexus onboard     Guided setup (providers, channels)" -ForegroundColor Green
 Write-Host "  nexus chat        Start chatting (demo mode)" -ForegroundColor Green
 Write-Host "  nexus start       Launch agent API + WebChat UI" -ForegroundColor Green
-Write-Host "  nexus doctor      Check system health" -ForegroundColor Green
-Write-Host "  nexus onboard     Guided setup wizard" -ForegroundColor Green
 Write-Host ""
-Write-Host "Quick start:" -ForegroundColor Yellow
-Write-Host "  nexus chat" -ForegroundColor Green
-Write-Host "  nexus start (opens http://localhost:8080)" -ForegroundColor Green
+Write-Host "Run the setup wizard to configure a provider?" -ForegroundColor Yellow
+$choice = Read-Host "  [Y/n]"
+if ($choice -match "^(n|N)$") {
+    Write-Host ""
+    Write-Host "  nexus chat     Chat now (demo mode, no setup)" -ForegroundColor Green
+    Write-Host "  nexus start    WebChat UI at http://localhost:8080" -ForegroundColor Green
+} else {
+    Write-Host ""
+    nexus onboard
+}
 
 $Host.UI.RawUI.ForegroundColor = "White"

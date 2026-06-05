@@ -99,15 +99,23 @@ fi
 # Init workspace
 echo ""
 nexus init 2>&1
-echo ""
 
+echo ""
 echo "${CYAN}${BOLD}Nexus installed!${NC}"
 echo ""
+echo "  ${GREEN}nexus doctor${NC}      Check system health"
+echo "  ${GREEN}nexus onboard${NC}     Guided setup (providers, channels)"
 echo "  ${GREEN}nexus chat${NC}        Start chatting (demo mode)"
 echo "  ${GREEN}nexus start${NC}       Launch agent API + WebChat UI"
-echo "  ${GREEN}nexus doctor${NC}      Check system health"
-echo "  ${GREEN}nexus onboard${NC}     Guided setup wizard"
 echo ""
-echo "  ${YELLOW}Quick start:${NC}"
-echo "    ${GREEN}nexus chat${NC}"
-echo "    ${GREEN}nexus start${NC} (opens http://localhost:8080)"
+echo "${YELLOW}Run the setup wizard to configure a provider?${NC}"
+printf "  ${CYAN}[Y/n]${NC} "
+read -r run_onboard
+if echo "$run_onboard" | grep -iq "^n"; then
+  echo ""
+  echo "  ${GREEN}nexus chat${NC}     Chat now (demo mode, no setup)"
+  echo "  ${GREEN}nexus start${NC}    WebChat UI at http://localhost:8080"
+else
+  echo ""
+  nexus onboard
+fi
