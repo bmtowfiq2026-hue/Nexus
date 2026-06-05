@@ -34,16 +34,16 @@ enum Commands {
         wizard: bool,
     },
     Chat {
-        #[arg(short, long, default_value = "demo")]
-        provider: String,
+        #[arg(short, long)]
+        provider: Option<String>,
         #[arg(short, long)]
         model: Option<String>,
     },
     Run {
         #[arg(long)]
         prompt: String,
-        #[arg(short, long, default_value = "demo")]
-        provider: String,
+        #[arg(short, long)]
+        provider: Option<String>,
     },
     Config {
         #[command(subcommand)]
@@ -56,14 +56,14 @@ enum Commands {
     Doctor,
     Onboard,
     Serve {
-        #[arg(short, long, default_value = "demo")]
-        provider: String,
-        #[arg(short, long, default_value_t = 9876)]
+        #[arg(long)]
+        provider: Option<String>,
+        #[arg(short, long, default_value_t = 8080)]
         port: u16,
     },
     Start {
-        #[arg(short, long, default_value = "demo")]
-        provider: String,
+        #[arg(long)]
+        provider: Option<String>,
         #[arg(short, long, default_value_t = 9876)]
         port: u16,
         #[arg(long, default_value_t = 8080)]
@@ -101,14 +101,14 @@ async fn main() -> anyhow::Result<()> {
             if *wizard { cmd_onboard(path.as_deref()).await }
             else { cmd_init(path.as_deref()).await }
         }
-        Commands::Chat { provider, model } => cmd_chat(provider, model.as_deref()).await,
-        Commands::Run { prompt, provider } => cmd_run(prompt, provider).await,
+        Commands::Chat { provider, model } => cmd_chat(provider.as_deref(), model.as_deref()).await,
+        Commands::Run { prompt, provider } => cmd_run(prompt, provider.as_deref()).await,
         Commands::Config { action } => cmd_config(action).await,
         Commands::Skill { action } => cmd_skill(action).await,
         Commands::Doctor => cmd_doctor().await,
         Commands::Onboard => cmd_onboard(None).await,
-        Commands::Serve { provider, port } => cmd_serve(provider, *port).await,
-        Commands::Start { provider, port, gateway_port, no_browser } => cmd_start(provider, *port, *gateway_port, *no_browser).await,
+        Commands::Serve { provider, port } => cmd_serve(provider.as_deref(), *port).await,
+        Commands::Start { provider, port, gateway_port, no_browser } => cmd_start(provider.as_deref(), *port, *gateway_port, *no_browser).await,
     }
 }
 
@@ -228,14 +228,95 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
         }
     }
 
+    // Channel configuration
+    println!("\n{}", "== Channel Setup ==".cyan().bold());
+    println!("  Nexus can connect to chat platforms via its Go gateway.");
+    println!("  WebChat is enabled by default at http://localhost:8080\n");
+    println!("  Configure additional channels? (y/N): ");
+    print!("  ");
+    std::io::stdout().flush()?;
+    let mut chan_input = String::new();
+    std::io::stdin().read_line(&mut chan_input)?;
+    if chan_input.trim().eq_ignore_ascii_case("y") {
+        let ws_dir = config.workspace_dir();
+        let gw_path = std::path::Path::new(&ws_dir).join("gateway.json");
+        let gw_config = if gw_path.exists() {
+            std::fs::read_to_string(&gw_path).ok().and_then(|d| serde_json::from_str::<serde_json::Value>(&d).ok())
+        } else { None };
+        let mut gw = gw_config.unwrap_or_else(|| serde_json::json!({
+            "port": 8080,
+            "webchat": {"enabled": true, "path": "/ws"}
+        }));
+
+        // WebChat
+        print!("  Enable WebChat UI (Y/n)? ");
+        std::io::stdout().flush()?;
+        let mut wc = String::new();
+        std::io::stdin().read_line(&mut wc)?;
+        gw["webchat"]["enabled"] = serde_json::json!(!wc.trim().eq_ignore_ascii_case("n"));
+
+        // Discord
+        print!("  Enable Discord (y/N)? ");
+        std::io::stdout().flush()?;
+        let mut dc = String::new();
+        std::io::stdin().read_line(&mut dc)?;
+        if dc.trim().eq_ignore_ascii_case("y") {
+            gw["discord"] = serde_json::json!({"enabled": true, "bot_token": ""});
+            print!("  Discord Bot Token: ");
+            std::io::stdout().flush()?;
+            let mut tok = String::new();
+            std::io::stdin().read_line(&mut tok)?;
+            if !tok.trim().is_empty() {
+                gw["discord"]["bot_token"] = serde_json::json!(tok.trim());
+            }
+        }
+
+        // Telegram
+        print!("  Enable Telegram (y/N)? ");
+        std::io::stdout().flush()?;
+        let mut tg = String::new();
+        std::io::stdin().read_line(&mut tg)?;
+        if tg.trim().eq_ignore_ascii_case("y") {
+            gw["telegram"] = serde_json::json!({"enabled": true, "bot_token": ""});
+            print!("  Telegram Bot Token: ");
+            std::io::stdout().flush()?;
+            let mut tok = String::new();
+            std::io::stdin().read_line(&mut tok)?;
+            if !tok.trim().is_empty() {
+                gw["telegram"]["bot_token"] = serde_json::json!(tok.trim());
+            }
+        }
+
+        // Slack
+        print!("  Enable Slack (y/N)? ");
+        std::io::stdout().flush()?;
+        let mut sl = String::new();
+        std::io::stdin().read_line(&mut sl)?;
+        if sl.trim().eq_ignore_ascii_case("y") {
+            gw["slack"] = serde_json::json!({"enabled": true, "bot_token": "", "app_token": "", "signing_secret": ""});
+        }
+
+        let gw_json = serde_json::to_string_pretty(&gw)?;
+        std::fs::write(&gw_path, &gw_json)?;
+        println!("  {} Gateway config saved to {}", "\u{2713}".green(), gw_path.display().to_string().cyan());
+    } else {
+        println!("  {} WebChat at http://localhost:8080 (default).", "\u{2139}".blue());
+        println!("  {} Configure channels later by editing gateway.json or re-running onboard.", "\u{2139}".blue());
+    }
+
     config.save()?;
     println!("\n{} Setup complete! Run 'nexus chat' to start.", "\u{2713}".green().bold());
     Ok(())
 }
 
-async fn cmd_serve(provider_name: &str, port: u16) -> anyhow::Result<()> {
+fn resolve_provider<'a>(config: &'a NexusConfig, cli_provider: Option<&'a str>) -> &'a str {
+    cli_provider.unwrap_or(if config.default_provider == "demo" { "demo" } else { &config.default_provider })
+}
+
+async fn cmd_serve(provider_name: Option<&str>, port: u16) -> anyhow::Result<()> {
     let config = NexusConfig::load();
-    let provider = create_provider(provider_name, None, &config)?;
+    let provider_name = resolve_provider(&config, provider_name).to_string();
+    let provider = create_provider(&provider_name, None, &config)?;
     let mut tools = ToolDispatcher::new();
     tools.register_builtins();
     let skills = SkillEngine::new();
@@ -395,14 +476,15 @@ async fn wait_for_url(url: &str, max_secs: u64) -> anyhow::Result<()> {
     anyhow::bail!("Timed out waiting for {}", url)
 }
 
-async fn cmd_start(provider_name: &str, port: u16, gateway_port: u16, no_browser: bool) -> anyhow::Result<()> {
+async fn cmd_start(provider_name: Option<&str>, port: u16, gateway_port: u16, no_browser: bool) -> anyhow::Result<()> {
     // 1. Find or build gateway
     let gateway_bin = find_or_build_gateway()?;
     println!("{} Gateway binary: {}", "\u{2713}".green(), gateway_bin.display());
 
     // 2. Start agent API on background thread
     let config = NexusConfig::load();
-    let provider = create_provider(provider_name, None, &config)?;
+    let provider_name = resolve_provider(&config, provider_name).to_string();
+    let provider = create_provider(&provider_name, None, &config)?;
     let mut tools = ToolDispatcher::new();
     tools.register_builtins();
     let skills = SkillEngine::new();
@@ -507,9 +589,10 @@ async fn cmd_start(provider_name: &str, port: u16, gateway_port: u16, no_browser
     Ok(())
 }
 
-async fn cmd_chat(provider_name: &str, model: Option<&str>) -> anyhow::Result<()> {
+async fn cmd_chat(provider_name: Option<&str>, model: Option<&str>) -> anyhow::Result<()> {
     let config = NexusConfig::load();
-    let provider = create_provider(provider_name, model, &config)?;
+    let provider_name = resolve_provider(&config, provider_name).to_string();
+    let provider = create_provider(&provider_name, model, &config)?;
     let mut tools = ToolDispatcher::new();
     tools.register_builtins();
     let skills = SkillEngine::new();
@@ -560,9 +643,10 @@ async fn cmd_chat(provider_name: &str, model: Option<&str>) -> anyhow::Result<()
     Ok(())
 }
 
-async fn cmd_run(prompt: &str, provider_name: &str) -> anyhow::Result<()> {
+async fn cmd_run(prompt: &str, provider_name: Option<&str>) -> anyhow::Result<()> {
     let config = NexusConfig::load();
-    let provider = create_provider(provider_name, None, &config)?;
+    let provider_name = resolve_provider(&config, provider_name).to_string();
+    let provider = create_provider(&provider_name, None, &config)?;
     let mut tools = ToolDispatcher::new();
     tools.register_builtins();
     let skills = SkillEngine::new();

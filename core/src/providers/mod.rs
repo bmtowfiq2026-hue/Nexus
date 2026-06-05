@@ -100,7 +100,6 @@ pub const PROVIDERS: &[(&str, &str, &str)] = &[
     ("localai",     "LocalAI",          "http://localhost:8080/v1"),
     ("textgen",     "oobabooga",        "http://localhost:5000/v1"),
     ("ollama",      "Ollama",           "http://localhost:11434"),
-    ("together",    "Together AI",      "https://api.together.xyz/v1"),
     ("deepinfra",   "DeepInfra",        "https://api.deepinfra.com/v1/openai"),
 ];
 
