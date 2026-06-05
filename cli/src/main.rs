@@ -55,6 +55,10 @@ enum Commands {
     },
     Doctor,
     Onboard,
+    Channels {
+        #[command(subcommand)]
+        action: ChannelAction,
+    },
     Serve {
         #[arg(long)]
         provider: Option<String>,
@@ -71,6 +75,14 @@ enum Commands {
         #[arg(long)]
         no_browser: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum ChannelAction {
+    List,
+    Enable { name: String },
+    Disable { name: String },
+    SetKey { name: String, key: String },
 }
 
 #[derive(Subcommand)]
@@ -107,6 +119,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::Skill { action } => cmd_skill(action).await,
         Commands::Doctor => cmd_doctor().await,
         Commands::Onboard => cmd_onboard(None).await,
+        Commands::Channels { action } => cmd_channels(action).await,
         Commands::Serve { provider, port } => cmd_serve(provider.as_deref(), *port).await,
         Commands::Start { provider, port, gateway_port, no_browser } => cmd_start(provider.as_deref(), *port, *gateway_port, *no_browser).await,
     }
@@ -303,6 +316,94 @@ fn resolve_provider<'a>(config: &'a NexusConfig, cli_provider: Option<&'a str>) 
     cli_provider.unwrap_or(if config.default_provider == "demo" { "demo" } else { &config.default_provider })
 }
 
+fn gateway_config_path() -> std::path::PathBuf {
+    let config = NexusConfig::load();
+    let ws_dir = config.workspace_dir();
+    std::path::Path::new(&ws_dir).join("gateway.json")
+}
+
+fn load_gateway_config() -> serde_json::Value {
+    let gw_path = gateway_config_path();
+    if gw_path.exists() {
+        std::fs::read_to_string(&gw_path).ok()
+            .and_then(|d| serde_json::from_str(&d).ok())
+            .unwrap_or_else(|| serde_json::json!({
+                "port": 8080,
+                "webchat": {"enabled": true, "path": "/ws"}
+            }))
+    } else {
+        serde_json::json!({
+            "port": 8080,
+            "webchat": {"enabled": true, "path": "/ws"}
+        })
+    }
+}
+
+async fn cmd_channels(action: &ChannelAction) -> anyhow::Result<()> {
+    let config = NexusConfig::load();
+    let ws_dir = config.workspace_dir();
+    let gw_path = std::path::Path::new(&ws_dir).join("gateway.json");
+    let mut gw = load_gateway_config();
+
+    match action {
+        ChannelAction::List => {
+            let all_channels = [
+                ("webchat", "WebChat UI"),
+                ("discord", "Discord"),
+                ("telegram", "Telegram"),
+                ("slack", "Slack"),
+                ("matrix", "Matrix"),
+                ("whatsapp", "WhatsApp"),
+                ("signal", "Signal"),
+                ("irc", "IRC"),
+                ("googlechat", "Google Chat"),
+                ("msteams", "MSTeams"),
+                ("line", "LINE"),
+                ("messenger", "Messenger"),
+                ("twilio", "Twilio"),
+            ];
+            println!("{}", "Channels:".cyan().bold());
+            for (key, label) in &all_channels {
+                let enabled = gw.get(*key).and_then(|c| c.get("enabled")).and_then(|v| v.as_bool()).unwrap_or(false);
+                let icon = if enabled { "\u{2713}".green() } else { "\u{2717}".dimmed() };
+                println!("  {} {} ({})", icon, label, key);
+            }
+            println!("\n  Config: {}", gw_path.display().to_string().cyan());
+        }
+        ChannelAction::Enable { name } => {
+            if gw.get(&name).is_none() {
+                gw[&name] = serde_json::json!({"enabled": true});
+            } else {
+                gw[&name]["enabled"] = serde_json::json!(true);
+            }
+            let data = serde_json::to_string_pretty(&gw)?;
+            std::fs::write(&gw_path, &data)?;
+            println!("{} Channel '{}' enabled", "\u{2713}".green(), name.cyan());
+        }
+        ChannelAction::Disable { name } => {
+            if let Some(obj) = gw.get_mut(&name) {
+                obj["enabled"] = serde_json::json!(false);
+            }
+            let data = serde_json::to_string_pretty(&gw)?;
+            std::fs::write(&gw_path, &data)?;
+            println!("{} Channel '{}' disabled", "\u{2713}".green(), name.cyan());
+        }
+        ChannelAction::SetKey { name, key } => {
+            if gw.get(&name).is_none() {
+                gw[&name] = serde_json::json!({"enabled": false, "bot_token": key});
+            } else if name == "discord" || name == "telegram" {
+                gw[&name]["bot_token"] = serde_json::json!(key);
+            } else {
+                gw[&name]["token"] = serde_json::json!(key);
+            }
+            let data = serde_json::to_string_pretty(&gw)?;
+            std::fs::write(&gw_path, &data)?;
+            println!("{} Key set for channel '{}'", "\u{2713}".green(), name.cyan());
+        }
+    }
+    Ok(())
+}
+
 async fn cmd_serve(provider_name: Option<&str>, port: u16) -> anyhow::Result<()> {
     let config = NexusConfig::load();
     let provider_name = resolve_provider(&config, provider_name).to_string();
@@ -473,6 +574,7 @@ async fn cmd_start(provider_name: Option<&str>, port: u16, gateway_port: u16, no
 
     // 2. Start agent API on background thread
     let config = NexusConfig::load();
+    let ws_dir = config.workspace_dir();
     let provider_name = resolve_provider(&config, provider_name).to_string();
     let provider = create_provider(&provider_name, None, &config)?;
     let mut tools = ToolDispatcher::new();
@@ -542,6 +644,7 @@ async fn cmd_start(provider_name: Option<&str>, port: u16, gateway_port: u16, no
     // 4. Start gateway as child process
     let gw_exe = gateway_bin.to_string_lossy().to_string();
     let mut gw_child = std::process::Command::new(&gw_exe)
+        .current_dir(&ws_dir)
         .env("NEXUS_AGENT_ENDPOINT", format!("http://localhost:{}", port))
         .spawn()
         .map_err(|e| anyhow::anyhow!("Failed to start gateway: {}", e))?;
@@ -771,6 +874,32 @@ async fn cmd_doctor() -> anyhow::Result<()> {
     println!();
     println!("  {} CLI version: {}", "\u{2139}".blue(), env!("CARGO_PKG_VERSION"));
     println!("  {} Default provider: {}", "\u{2139}".blue(), config.default_provider.cyan());
+
+    // Gateway check
+    println!("\n  {} Gateway:", "\u{2192}".blue().bold());
+    let gw_path = gateway_config_path();
+    if gw_path.exists() {
+        let gw_data = load_gateway_config();
+        let enabled: Vec<String> = gw_data.as_object().map(|obj| {
+            obj.iter().filter(|(_, v)| {
+                v.get("enabled").and_then(|e| e.as_bool()).unwrap_or(false)
+            }).map(|(k, _)| k.clone()).collect()
+        }).unwrap_or_default();
+        if enabled.is_empty() {
+            println!("    {} Config found, no channels enabled (WebChat defaults on :8080)", "\u{2139}".blue());
+        } else {
+            println!("    {} Config found, {} channel(s) enabled: {}", "\u{2713}".green(), enabled.len(), enabled.join(", ").cyan());
+        }
+    } else {
+        println!("    {} No gateway config (WebChat defaults on :8080)", "\u{2139}".blue());
+        println!("      Run 'nexus onboard' or 'nexus channels enable <name>' to configure");
+    }
+    let has_go = std::process::Command::new("go").arg("version").output().is_ok();
+    if has_go {
+        println!("    {} Go toolchain available (can auto-build gateway)", "\u{2713}".green());
+    } else {
+        println!("    {} Go not found (gateway won't auto-build; install from https://go.dev/dl)", "\u{2139}".blue());
+    }
 
     if let Ok(api_keys) = std::env::var("OPENAI_API_KEY") {
         if !api_keys.is_empty() { println!("  {} OPENAI_API_KEY detected", "\u{2713}".green()); }
