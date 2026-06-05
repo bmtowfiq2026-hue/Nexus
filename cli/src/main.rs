@@ -230,10 +230,9 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
 
     // Channel configuration
     println!("\n{}", "== Channel Setup ==".cyan().bold());
-    println!("  Nexus can connect to chat platforms via its Go gateway.");
-    println!("  WebChat is enabled by default at http://localhost:8080\n");
-    println!("  Configure additional channels? (y/N): ");
-    print!("  ");
+    println!("  Nexus supports 13 chat platforms via its Go gateway.");
+    println!("  WebChat (built-in UI) is enabled by default at http://localhost:8080\n");
+    print!("  Configure additional channels? (y/N): ");
     std::io::stdout().flush()?;
     let mut chan_input = String::new();
     std::io::stdin().read_line(&mut chan_input)?;
@@ -248,52 +247,43 @@ async fn cmd_onboard(_path: Option<&str>) -> anyhow::Result<()> {
             "webchat": {"enabled": true, "path": "/ws"}
         }));
 
-        // WebChat
-        print!("  Enable WebChat UI (Y/n)? ");
-        std::io::stdout().flush()?;
-        let mut wc = String::new();
-        std::io::stdin().read_line(&mut wc)?;
-        gw["webchat"]["enabled"] = serde_json::json!(!wc.trim().eq_ignore_ascii_case("n"));
+        struct ChannelDef { key: &'static str, prompt: &'static str, fields: &'static [(&'static str, &'static str)] }
+        let channels = [
+            ChannelDef { key: "webchat",    prompt: "Enable WebChat UI (Y/n)? ",      fields: &[("path", "/ws")] },
+            ChannelDef { key: "discord",    prompt: "Enable Discord (y/N)? ",         fields: &[("bot_token", "Bot Token")] },
+            ChannelDef { key: "telegram",   prompt: "Enable Telegram (y/N)? ",        fields: &[("bot_token", "Bot Token")] },
+            ChannelDef { key: "slack",      prompt: "Enable Slack (y/N)? ",           fields: &[("bot_token", "Bot Token"), ("app_token", "App Token"), ("signing_secret", "Signing Secret")] },
+            ChannelDef { key: "matrix",     prompt: "Enable Matrix (y/N)? ",          fields: &[("homeserver", "Homeserver URL"), ("access_token", "Access Token"), ("room_id", "Room ID")] },
+            ChannelDef { key: "whatsapp",   prompt: "Enable WhatsApp (y/N)? ",        fields: &[("api_token", "API Token"), ("verify_token", "Verify Token")] },
+            ChannelDef { key: "signal",     prompt: "Enable Signal (y/N)? ",          fields: &[("phone_number", "Phone Number"), ("signal_api", "Signal API URL")] },
+            ChannelDef { key: "irc",        prompt: "Enable IRC (y/N)? ",             fields: &[("server", "Server"), ("channel", "Channel"), ("nick", "Nick"), ("password", "Password")] },
+            ChannelDef { key: "googlechat", prompt: "Enable Google Chat (y/N)? ",     fields: &[("webhook_url", "Webhook URL"), ("space_id", "Space ID")] },
+            ChannelDef { key: "msteams",    prompt: "Enable MSTeams (y/N)? ",         fields: &[("webhook_url", "Webhook URL"), ("app_id", "App ID"), ("app_secret", "App Secret")] },
+            ChannelDef { key: "line",       prompt: "Enable LINE (y/N)? ",            fields: &[("channel_secret", "Channel Secret"), ("channel_token", "Channel Token")] },
+            ChannelDef { key: "messenger",  prompt: "Enable Messenger (y/N)? ",       fields: &[("page_id", "Page ID"), ("access_token", "Access Token"), ("verify_token", "Verify Token")] },
+            ChannelDef { key: "twilio",     prompt: "Enable Twilio (y/N)? ",          fields: &[("account_sid", "Account SID"), ("auth_token", "Auth Token"), ("from_number", "From Number")] },
+        ];
 
-        // Discord
-        print!("  Enable Discord (y/N)? ");
-        std::io::stdout().flush()?;
-        let mut dc = String::new();
-        std::io::stdin().read_line(&mut dc)?;
-        if dc.trim().eq_ignore_ascii_case("y") {
-            gw["discord"] = serde_json::json!({"enabled": true, "bot_token": ""});
-            print!("  Discord Bot Token: ");
+        for ch in &channels {
+            print!("  {}", ch.prompt);
             std::io::stdout().flush()?;
-            let mut tok = String::new();
-            std::io::stdin().read_line(&mut tok)?;
-            if !tok.trim().is_empty() {
-                gw["discord"]["bot_token"] = serde_json::json!(tok.trim());
+            let mut resp = String::new();
+            std::io::stdin().read_line(&mut resp)?;
+            let enable = resp.trim().eq_ignore_ascii_case("y") || (ch.key == "webchat" && !resp.trim().eq_ignore_ascii_case("n"));
+            if enable {
+                let mut obj = serde_json::json!({"enabled": true});
+                for (field, label) in ch.fields {
+                    print!("    {}: ", label);
+                    std::io::stdout().flush()?;
+                    let mut val = String::new();
+                    std::io::stdin().read_line(&mut val)?;
+                    let v = val.trim();
+                    if !v.is_empty() || ch.key == "webchat" {
+                        obj[field] = serde_json::json!(if v.is_empty() { "" } else { v });
+                    }
+                }
+                gw[ch.key] = obj;
             }
-        }
-
-        // Telegram
-        print!("  Enable Telegram (y/N)? ");
-        std::io::stdout().flush()?;
-        let mut tg = String::new();
-        std::io::stdin().read_line(&mut tg)?;
-        if tg.trim().eq_ignore_ascii_case("y") {
-            gw["telegram"] = serde_json::json!({"enabled": true, "bot_token": ""});
-            print!("  Telegram Bot Token: ");
-            std::io::stdout().flush()?;
-            let mut tok = String::new();
-            std::io::stdin().read_line(&mut tok)?;
-            if !tok.trim().is_empty() {
-                gw["telegram"]["bot_token"] = serde_json::json!(tok.trim());
-            }
-        }
-
-        // Slack
-        print!("  Enable Slack (y/N)? ");
-        std::io::stdout().flush()?;
-        let mut sl = String::new();
-        std::io::stdin().read_line(&mut sl)?;
-        if sl.trim().eq_ignore_ascii_case("y") {
-            gw["slack"] = serde_json::json!({"enabled": true, "bot_token": "", "app_token": "", "signing_secret": ""});
         }
 
         let gw_json = serde_json::to_string_pretty(&gw)?;
